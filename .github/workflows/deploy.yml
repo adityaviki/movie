@@ -18,5 +18,5 @@ jobs:
             cd /home/ubuntu/app
             git pull origin main
             pnpm install --frozen-lockfile
-            pnpm build
-            pm2 restart movie-app
+            pnpm --filter @movie/frontend build
+            pm2 restart movie-backend
