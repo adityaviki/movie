@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { WatchlistToggle } from '@/components/watchlist-toggle'
 import { WatchedToggle } from '@/components/watched-toggle'
-import { DeleteMovieButton } from '@/components/delete-movie-button'
-import { Star, ArrowLeft, Pencil, ExternalLink } from 'lucide-react'
+import { Star, ArrowLeft, ExternalLink } from 'lucide-react'
 
 export function MovieDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -65,17 +64,13 @@ export function MovieDetailPage() {
             <WatchedToggle movieId={movie.id} watched={movie.watched} />
             <span className="text-sm text-muted-foreground">{movie.watched ? 'Watched' : 'Not Watched'}</span>
           </div>
-          <div className="flex gap-3 flex-wrap">
-            <Link to={`/movies/${movie.id}/edit`}>
-              <Button variant="outline" size="sm"><Pencil className="mr-2 h-4 w-4" />Edit</Button>
-            </Link>
-            {movie.imdbId && (
+          {movie.imdbId && (
+            <div className="flex gap-3 flex-wrap">
               <a href={`https://www.imdb.com/title/${movie.imdbId}`} target="_blank" rel="noopener noreferrer">
                 <Button variant="outline" size="sm"><ExternalLink className="mr-2 h-4 w-4" />IMDB</Button>
               </a>
-            )}
-            <DeleteMovieButton movieId={movie.id} />
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

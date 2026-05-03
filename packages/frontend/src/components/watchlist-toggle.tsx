@@ -6,7 +6,10 @@ export function WatchlistToggle({ movieId, inWatchlist }: { movieId: string; inW
   const queryClient = useQueryClient()
   const { mutate, isPending } = useMutation({
     mutationFn: () => moviesApi.toggleWatchlist(movieId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['movies'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['movies'] })
+      queryClient.invalidateQueries({ queryKey: ['movie-stats'] })
+    },
   })
 
   return (

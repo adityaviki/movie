@@ -5,6 +5,8 @@ import { WatchlistToggle } from '@/components/watchlist-toggle'
 import { WatchedToggle } from '@/components/watched-toggle'
 import type { Movie } from '@movie/shared'
 
+const compactFmt = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 })
+
 export function MovieCard({ movie }: { movie: Movie }) {
   return (
     <Link to={`/movies/${movie.id}`} className="group block">
@@ -41,6 +43,9 @@ export function MovieCard({ movie }: { movie: Movie }) {
             <span className="flex items-center gap-0.5">
               <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
               {movie.rating.toFixed(1)}
+              {movie.votes != null && (
+                <span className="text-muted-foreground/70 ml-0.5">({compactFmt.format(movie.votes)})</span>
+              )}
             </span></>
           )}
         </div>

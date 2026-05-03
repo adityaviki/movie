@@ -19,14 +19,17 @@ export interface Movie {
 
 export interface MovieFilters {
   search?: string
-  genre?: string
+  genres?: string[]
+  type?: string
   minRating?: number
   maxRating?: number
-  year?: number
-  type?: string
+  minYear?: number
+  maxYear?: number
+  minVotes?: number
+  maxVotes?: number
   inWatchlist?: boolean
   watched?: boolean
-  sortBy?: 'title' | 'rating' | 'year' | 'createdAt'
+  sortBy?: 'title' | 'rating' | 'votes' | 'year' | 'createdAt'
   sortOrder?: 'asc' | 'desc'
   page?: number
   pageSize?: number
@@ -53,4 +56,35 @@ export interface MoviesResponse {
   total: number
   page: number
   pageSize: number
+}
+
+export interface User {
+  id: string
+  email: string
+  username: string
+  name: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AuthResponse {
+  user: User
+}
+
+export interface SavedView {
+  id: string
+  name: string
+  params: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SavedViewInput {
+  name: string
+  params: string
+}
+
+export interface SavedViewsResponse {
+  views: SavedView[]
+  defaultView: string | null
 }

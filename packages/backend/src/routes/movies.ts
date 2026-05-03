@@ -1,11 +1,36 @@
 import type { FastifyInstance } from 'fastify'
 import { and, asc, desc, eq, gte, ilike, lte, or, sql } from 'drizzle-orm'
-import { createId } from '@paralleldrive/cuid2'
 import { db } from '../db/index.js'
-import { movies } from '../db/schema.js'
-import type { MovieFilters, MovieFormData } from '@movie/shared'
+import { movies, userMovies } from '../db/schema.js'
+import type { MovieFilters } from '@movie/shared'
+
+const WATCHLIST_FALSE = sql<boolean>`COALESCE(${userMovies.inWatchlist}, false)`
+const WATCHED_FALSE = sql<boolean>`COALESCE(${userMovies.watched}, false)`
+
+function withUserFlags(_userId: string) {
+  return {
+    id: movies.id,
+    imdbId: movies.imdbId,
+    title: movies.title,
+    year: movies.year,
+    type: movies.type,
+    rating: movies.rating,
+    votes: movies.votes,
+    genres: movies.genres,
+    runtime: movies.runtime,
+    certificate: movies.certificate,
+    description: movies.description,
+    posterUrl: movies.posterUrl,
+    inWatchlist: WATCHLIST_FALSE.as('inWatchlist'),
+    watched: WATCHED_FALSE.as('watched'),
+    createdAt: movies.createdAt,
+    updatedAt: movies.updatedAt,
+  }
+}
 
 export async function movieRoutes(app: FastifyInstance) {
+  app.addHook('preHandler', app.requireAuth)
+
   app.get('/movies/genres', async () => {
     const rows = await db.select({ genres: movies.genres }).from(movies)
     const set = new Set<string>()
@@ -13,17 +38,44 @@ export async function movieRoutes(app: FastifyInstance) {
     return Array.from(set).sort()
   })
 
+  app.get('/movies/stats', async (req) => {
+    const userId = req.user.sub
+    const [stats] = await db
+      .select({
+        watchlist: sql<number>`COUNT(*) FILTER (WHERE ${userMovies.inWatchlist} = true)::int`,
+        watched: sql<number>`COUNT(*) FILTER (WHERE ${userMovies.watched} = true)::int`,
+      })
+      .from(userMovies)
+      .where(eq(userMovies.userId, userId))
+    return stats ?? { watchlist: 0, watched: 0 }
+  })
+
+  app.get('/movies/types', async () => {
+    const rows = await db
+      .select({ type: movies.type, count: sql<number>`count(*)::int` })
+      .from(movies)
+      .where(sql`${movies.type} IS NOT NULL`)
+      .groupBy(movies.type)
+      .orderBy(desc(sql`count(*)`))
+    return rows.map((r) => ({ type: r.type as string, count: r.count }))
+  })
+
   app.get<{ Querystring: Record<string, string> }>('/movies', async (req) => {
+    const userId = req.user.sub
     const q = req.query
+    const genresList = q.genres ? q.genres.split(',').map((g) => g.trim()).filter(Boolean) : []
     const filters: MovieFilters = {
       search: q.search || undefined,
-      genre: q.genre || undefined,
+      genres: genresList.length ? genresList : undefined,
+      type: q.type || undefined,
       minRating: q.minRating ? Number(q.minRating) : undefined,
       maxRating: q.maxRating ? Number(q.maxRating) : undefined,
-      year: q.year ? Number(q.year) : undefined,
-      type: q.type || undefined,
+      minYear: q.minYear ? Number(q.minYear) : undefined,
+      maxYear: q.maxYear ? Number(q.maxYear) : undefined,
+      minVotes: q.minVotes ? Number(q.minVotes) : undefined,
+      maxVotes: q.maxVotes ? Number(q.maxVotes) : undefined,
       inWatchlist: q.inWatchlist === 'true' ? true : q.inWatchlist === 'false' ? false : undefined,
-      watched: q.watched === 'true' ? true : q.watched === 'false' ? false : undefined,
+      watched: q.watched === 'all' ? undefined : q.watched === 'true' ? true : false,
       sortBy: (q.sortBy as MovieFilters['sortBy']) || 'createdAt',
       sortOrder: (q.sortOrder as MovieFilters['sortOrder']) || 'desc',
       page: q.page ? Number(q.page) : 1,
@@ -32,74 +84,132 @@ export async function movieRoutes(app: FastifyInstance) {
 
     const conditions = []
     if (filters.search) conditions.push(or(ilike(movies.title, `%${filters.search}%`), ilike(movies.description, `%${filters.search}%`)))
-    if (filters.genre) conditions.push(sql`${movies.genres} @> ARRAY[${filters.genre}]::text[]`)
+    if (filters.genres && filters.genres.length) {
+      const items = sql.join(filters.genres.map((g) => sql`${g}`), sql`, `)
+      conditions.push(sql`${movies.genres} @> ARRAY[${items}]::text[]`)
+    }
+    if (filters.type) conditions.push(eq(movies.type, filters.type))
     if (filters.minRating !== undefined) conditions.push(gte(movies.rating, filters.minRating))
     if (filters.maxRating !== undefined) conditions.push(lte(movies.rating, filters.maxRating))
-    if (filters.year !== undefined) conditions.push(eq(movies.year, filters.year))
-    if (filters.type) conditions.push(eq(movies.type, filters.type))
-    if (filters.inWatchlist !== undefined) conditions.push(eq(movies.inWatchlist, filters.inWatchlist))
-    if (filters.watched !== undefined) conditions.push(eq(movies.watched, filters.watched))
+    if (filters.minYear !== undefined) conditions.push(gte(movies.year, filters.minYear))
+    if (filters.maxYear !== undefined) conditions.push(lte(movies.year, filters.maxYear))
+    if (filters.minVotes !== undefined) conditions.push(gte(movies.votes, filters.minVotes))
+    if (filters.maxVotes !== undefined) conditions.push(lte(movies.votes, filters.maxVotes))
+    if (filters.inWatchlist !== undefined) conditions.push(sql`COALESCE(${userMovies.inWatchlist}, false) = ${filters.inWatchlist}`)
+    if (filters.watched !== undefined) conditions.push(sql`COALESCE(${userMovies.watched}, false) = ${filters.watched}`)
 
     const where = conditions.length ? and(...conditions) : undefined
-    const sortCol = { title: movies.title, rating: movies.rating, year: movies.year, createdAt: movies.createdAt }[filters.sortBy!]!
+    const sortCol = {
+      title: movies.title,
+      rating: movies.rating,
+      votes: movies.votes,
+      year: movies.year,
+      createdAt: movies.createdAt,
+    }[filters.sortBy!]!
     const order = filters.sortOrder === 'asc' ? asc(sortCol) : desc(sortCol)
     const skip = ((filters.page ?? 1) - 1) * (filters.pageSize ?? 20)
 
+    const joinCondition = and(eq(userMovies.movieId, movies.id), eq(userMovies.userId, userId))
+
     const [rows, [{ total }]] = await Promise.all([
-      db.select().from(movies).where(where).orderBy(order).limit(filters.pageSize!).offset(skip),
-      db.select({ total: sql<number>`count(*)::int` }).from(movies).where(where),
+      db
+        .select(withUserFlags(userId))
+        .from(movies)
+        .leftJoin(userMovies, joinCondition)
+        .where(where)
+        .orderBy(order)
+        .limit(filters.pageSize!)
+        .offset(skip),
+      db
+        .select({ total: sql<number>`count(*)::int` })
+        .from(movies)
+        .leftJoin(userMovies, joinCondition)
+        .where(where),
     ])
 
     return { movies: rows, total, page: filters.page, pageSize: filters.pageSize }
   })
 
   app.get<{ Params: { id: string } }>('/movies/:id', async (req, reply) => {
-    const [movie] = await db.select().from(movies).where(eq(movies.id, req.params.id)).limit(1)
-    if (!movie) return reply.code(404).send({ error: 'Not found' })
-    return movie
-  })
-
-  app.post<{ Body: MovieFormData }>('/movies', async (req, reply) => {
-    const [movie] = await db.insert(movies).values({
-      id: createId(),
-      ...req.body,
-      genres: req.body.genres ?? [],
-      updatedAt: new Date(),
-    }).returning()
-    return reply.code(201).send(movie)
-  })
-
-  app.put<{ Params: { id: string }; Body: MovieFormData }>('/movies/:id', async (req, reply) => {
-    const [movie] = await db.update(movies)
-      .set({ ...req.body, genres: req.body.genres ?? [], updatedAt: new Date() })
+    const userId = req.user.sub
+    const [movie] = await db
+      .select(withUserFlags(userId))
+      .from(movies)
+      .leftJoin(userMovies, and(eq(userMovies.movieId, movies.id), eq(userMovies.userId, userId)))
       .where(eq(movies.id, req.params.id))
-      .returning()
+      .limit(1)
     if (!movie) return reply.code(404).send({ error: 'Not found' })
     return movie
-  })
-
-  app.delete<{ Params: { id: string } }>('/movies/:id', async (req, reply) => {
-    await db.delete(movies).where(eq(movies.id, req.params.id))
-    return reply.code(204).send()
   })
 
   app.patch<{ Params: { id: string } }>('/movies/:id/watchlist', async (req, reply) => {
-    const [current] = await db.select({ inWatchlist: movies.inWatchlist }).from(movies).where(eq(movies.id, req.params.id)).limit(1)
-    if (!current) return reply.code(404).send({ error: 'Not found' })
-    const [movie] = await db.update(movies)
-      .set({ inWatchlist: !current.inWatchlist, updatedAt: new Date() })
+    const userId = req.user.sub
+    const [exists] = await db.select({ id: movies.id }).from(movies).where(eq(movies.id, req.params.id)).limit(1)
+    if (!exists) return reply.code(404).send({ error: 'Not found' })
+
+    const [current] = await db
+      .select({ inWatchlist: userMovies.inWatchlist })
+      .from(userMovies)
+      .where(and(eq(userMovies.userId, userId), eq(userMovies.movieId, req.params.id)))
+      .limit(1)
+
+    const next = !(current?.inWatchlist ?? false)
+    await upsertUserMovie(userId, req.params.id, { inWatchlist: next })
+
+    const [movie] = await db
+      .select(withUserFlags(userId))
+      .from(movies)
+      .leftJoin(userMovies, and(eq(userMovies.movieId, movies.id), eq(userMovies.userId, userId)))
       .where(eq(movies.id, req.params.id))
-      .returning()
+      .limit(1)
     return movie
   })
 
   app.patch<{ Params: { id: string } }>('/movies/:id/watched', async (req, reply) => {
-    const [current] = await db.select({ watched: movies.watched }).from(movies).where(eq(movies.id, req.params.id)).limit(1)
-    if (!current) return reply.code(404).send({ error: 'Not found' })
-    const [movie] = await db.update(movies)
-      .set({ watched: !current.watched, updatedAt: new Date() })
+    const userId = req.user.sub
+    const [exists] = await db.select({ id: movies.id }).from(movies).where(eq(movies.id, req.params.id)).limit(1)
+    if (!exists) return reply.code(404).send({ error: 'Not found' })
+
+    const [current] = await db
+      .select({ watched: userMovies.watched })
+      .from(userMovies)
+      .where(and(eq(userMovies.userId, userId), eq(userMovies.movieId, req.params.id)))
+      .limit(1)
+
+    const next = !(current?.watched ?? false)
+    await upsertUserMovie(userId, req.params.id, { watched: next })
+
+    const [movie] = await db
+      .select(withUserFlags(userId))
+      .from(movies)
+      .leftJoin(userMovies, and(eq(userMovies.movieId, movies.id), eq(userMovies.userId, userId)))
       .where(eq(movies.id, req.params.id))
-      .returning()
+      .limit(1)
     return movie
   })
+
+}
+
+async function upsertUserMovie(
+  userId: string,
+  movieId: string,
+  patch: { inWatchlist?: boolean; watched?: boolean },
+) {
+  const set: Record<string, unknown> = { updatedAt: new Date() }
+  if (patch.inWatchlist !== undefined) set.inWatchlist = patch.inWatchlist
+  if (patch.watched !== undefined) set.watched = patch.watched
+
+  await db
+    .insert(userMovies)
+    .values({
+      userId,
+      movieId,
+      inWatchlist: patch.inWatchlist ?? false,
+      watched: patch.watched ?? false,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: [userMovies.userId, userMovies.movieId],
+      set,
+    })
 }
