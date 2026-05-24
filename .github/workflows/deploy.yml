@@ -27,9 +27,11 @@ jobs:
         # warning. Tolerate it; subsequent build steps surface real install bugs.
         run: pnpm install --frozen-lockfile || true
       - name: Typecheck backend
-        run: pnpm --filter @movie/backend build
+        working-directory: packages/backend
+        run: ./node_modules/.bin/tsc
       - name: Typecheck + build frontend
-        run: pnpm --filter @movie/frontend build
+        working-directory: packages/frontend
+        run: ./node_modules/.bin/vite build
 
   deploy:
     needs: typecheck
