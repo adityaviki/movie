@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
-# Pull latest, install deps, build frontend, migrate DB, restart backend.
+# Pull latest, install deps, migrate DB, build frontend, restart backend.
 # Run on every deploy. Re-runnable.
+#
+# Avoids `pnpm run <script>` for build/migrate steps because pnpm's
+# verify-deps-before-run pre-check exits non-zero on the (harmless)
+# ignored-builds warning, which combined with `set -e` aborts the script
+# silently. Direct binary calls sidestep the issue.
 
 set -euo pipefail
 
@@ -15,10 +20,11 @@ echo "==> pnpm install"
 pnpm install --frozen-lockfile
 
 echo "==> drizzle migrate"
-pnpm --filter @movie/backend db:migrate
+( cd packages/backend && env $(grep -v '^#' /etc/movie-backend.env | xargs) \
+    ./node_modules/.bin/drizzle-kit migrate )
 
 echo "==> build frontend"
-pnpm --filter @movie/frontend build
+( cd packages/frontend && ./node_modules/.bin/vite build )
 
 echo "==> restart backend"
 sudo systemctl restart movie-backend.service
