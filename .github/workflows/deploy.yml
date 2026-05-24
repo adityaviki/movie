@@ -3,21 +3,47 @@ name: Deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+
+# Never run two deploys at once. Don't cancel in-flight ones — let them finish.
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  typecheck:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to server
-        uses: appleboy/ssh-action@v1.2.0
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
         with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /home/ubuntu/app
-            git pull origin main
-            pnpm install --frozen-lockfile
-            pnpm --filter @movie/backend db:migrate
-            pnpm --filter @movie/frontend build
-            pm2 restart movie-backend
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck backend
+        run: pnpm --filter @movie/backend build
+      - name: Typecheck + build frontend
+        run: pnpm --filter @movie/frontend build
+
+  deploy:
+    needs: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.LIGHTSAIL_HOST }}" >> ~/.ssh/known_hosts
+      - name: Run deploy.sh on Lightsail
+        run: |
+          ssh -o BatchMode=yes "${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }}" \
+            'cd movie && bash deploy/deploy.sh'
+      - name: Verify site is up
+        run: |
+          curl -fsSL -o /dev/null -w "HTTPS / : %{http_code}\n" https://movies.adityaviki.com/
+          curl -fsS -o /dev/null -w "HTTPS /api/auth/me : %{http_code}\n" \
+            https://movies.adityaviki.com/api/auth/me || true
