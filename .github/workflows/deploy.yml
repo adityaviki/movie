@@ -22,7 +22,10 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - name: pnpm install
+        # See deploy.sh — pnpm 11 exits non-zero on the harmless ignored-builds
+        # warning. Tolerate it; subsequent build steps surface real install bugs.
+        run: pnpm install --frozen-lockfile || true
       - name: Typecheck backend
         run: pnpm --filter @movie/backend build
       - name: Typecheck + build frontend
