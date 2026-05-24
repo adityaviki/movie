@@ -4,7 +4,6 @@ import { UserMenu } from '@/components/user-menu'
 import { RequireAuth } from '@/components/require-auth'
 import { MovieSearchBox } from '@/components/movie-filters'
 import { LoginPage } from '@/pages/LoginPage'
-import { SignupPage } from '@/pages/SignupPage'
 import { MoviesPage } from '@/pages/MoviesPage'
 
 export default function App() {
@@ -27,7 +26,6 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 py-6">
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
           <Route element={<RequireAuth />}>
             <Route path="/" element={<Navigate to="/movies" replace />} />
             <Route path="/movies" element={<MoviesPage />} />

@@ -1,26 +1,8 @@
 import type { FastifyInstance } from 'fastify'
-import { eq, or } from 'drizzle-orm'
-import { createId } from '@paralleldrive/cuid2'
+import { eq } from 'drizzle-orm'
 import { db } from '../db/index.js'
 import { users } from '../db/schema.js'
-import {
-  TOKEN_COOKIE,
-  cookieOptions,
-  hashPassword,
-  isValidEmail,
-  isValidUsername,
-  normalizeEmail,
-  normalizeUsername,
-  signToken,
-  verifyPassword,
-} from '../lib/auth.js'
-
-interface SignupBody {
-  email?: string
-  username?: string
-  password?: string
-  name?: string
-}
+import { TOKEN_COOKIE, cookieOptions, signToken, verifyPassword } from '../lib/auth.js'
 
 interface LoginBody {
   identifier?: string
@@ -46,49 +28,6 @@ function publicUser(u: {
 }
 
 export async function authRoutes(app: FastifyInstance) {
-  app.post<{ Body: SignupBody }>(
-    '/auth/signup',
-    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
-    async (req, reply) => {
-      const email = normalizeEmail(req.body?.email ?? '')
-      const username = normalizeUsername(req.body?.username ?? '')
-      const password = req.body?.password ?? ''
-      const name = req.body?.name?.trim() || null
-
-      if (!isValidEmail(email)) return reply.code(400).send({ error: 'Invalid email' })
-      if (!isValidUsername(username))
-        return reply.code(400).send({
-          error: 'Username must be 3-30 characters of letters, numbers, underscore or hyphen',
-        })
-      if (password.length < 8) return reply.code(400).send({ error: 'Password must be at least 8 characters' })
-
-      const [existing] = await db
-        .select({ id: users.id, email: users.email, username: users.username })
-        .from(users)
-        .where(or(eq(users.email, email), eq(users.username, username)))
-        .limit(1)
-      if (existing) {
-        const field = existing.email === email ? 'Email' : 'Username'
-        return reply.code(409).send({ error: `${field} already in use` })
-      }
-
-      const [user] = await db
-        .insert(users)
-        .values({
-          id: createId(),
-          email,
-          username,
-          passwordHash: await hashPassword(password),
-          name,
-          updatedAt: new Date(),
-        })
-        .returning()
-
-      reply.setCookie(TOKEN_COOKIE, signToken(app, user.id), cookieOptions())
-      return { user: publicUser(user) }
-    },
-  )
-
   app.post<{ Body: LoginBody }>(
     '/auth/login',
     { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },

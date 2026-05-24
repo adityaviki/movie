@@ -29,6 +29,7 @@ await app.register(cookie, { secret: process.env.COOKIE_SECRET })
 await app.register(jwt, {
   secret: process.env.JWT_SECRET!,
   cookie: { cookieName: TOKEN_COOKIE, signed: true },
+  sign: { expiresIn: '30d' },
 })
 await app.register(rateLimit, { global: false })
 await app.register(cors, {

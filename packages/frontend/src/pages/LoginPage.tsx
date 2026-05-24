@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -48,10 +48,6 @@ export function LoginPage() {
             <Button type="submit" disabled={mutation.isPending} className="w-full">
               {mutation.isPending ? 'Logging in...' : 'Log in'}
             </Button>
-            <p className="text-sm text-muted-foreground text-center">
-              No account?{' '}
-              <Link to="/signup" className="underline underline-offset-4">Sign up</Link>
-            </p>
           </form>
         </CardContent>
       </Card>
