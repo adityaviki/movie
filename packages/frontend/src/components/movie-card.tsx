@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Star } from 'lucide-react'
 import { WatchlistToggle } from '@/components/watchlist-toggle'
@@ -8,8 +8,27 @@ import type { Movie } from '@movie/shared'
 const compactFmt = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 })
 
 export function MovieCard({ movie }: { movie: Movie }) {
+  const [, setSearchParams] = useSearchParams()
+  const openDetail = () => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set('movie', movie.id)
+      return next
+    })
+  }
   return (
-    <Link to={`/movies/${movie.id}`} className="group block">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={openDetail}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          openDetail()
+        }
+      }}
+      className="group block text-left w-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl"
+    >
       <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-muted shadow-md transition-shadow duration-300 group-hover:shadow-xl">
         {movie.posterUrl ? (
           <img
@@ -57,6 +76,6 @@ export function MovieCard({ movie }: { movie: Movie }) {
           </div>
         )}
       </div>
-    </Link>
+    </div>
   )
 }

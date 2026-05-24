@@ -6,7 +6,6 @@ import { MovieSearchBox } from '@/components/movie-filters'
 import { LoginPage } from '@/pages/LoginPage'
 import { SignupPage } from '@/pages/SignupPage'
 import { MoviesPage } from '@/pages/MoviesPage'
-import { MovieDetailPage } from '@/pages/MovieDetailPage'
 
 export default function App() {
   const location = useLocation()
@@ -32,7 +31,6 @@ export default function App() {
           <Route element={<RequireAuth />}>
             <Route path="/" element={<Navigate to="/movies" replace />} />
             <Route path="/movies" element={<MoviesPage />} />
-            <Route path="/movies/:id" element={<MovieDetailPage />} />
           </Route>
         </Routes>
       </main>

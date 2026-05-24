@@ -17,6 +17,23 @@ export interface Movie {
   updatedAt: string
 }
 
+export interface MovieCreditPerson {
+  id: string
+  name: string
+  category: string
+  ordering: number
+  job: string | null
+  characters: string[] | null
+}
+
+export interface MovieDetail extends Movie {
+  directors: MovieCreditPerson[]
+  writers: MovieCreditPerson[]
+  producers: MovieCreditPerson[]
+  cast: MovieCreditPerson[]
+  crew: MovieCreditPerson[]
+}
+
 export interface MovieFilters {
   search?: string
   genres?: string[]
@@ -29,10 +46,21 @@ export interface MovieFilters {
   maxVotes?: number
   inWatchlist?: boolean
   watched?: boolean
+  people?: string[]
+  peopleRole?: PeopleRole
   sortBy?: 'title' | 'rating' | 'votes' | 'year' | 'createdAt'
   sortOrder?: 'asc' | 'desc'
   page?: number
   pageSize?: number
+}
+
+export type PeopleRole = 'any' | 'director' | 'writer' | 'producer' | 'cast'
+
+export interface PersonSearchResult {
+  id: string
+  name: string
+  professions: string[]
+  credits: number
 }
 
 export interface MovieFormData {

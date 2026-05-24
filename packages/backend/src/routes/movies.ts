@@ -1,8 +1,22 @@
 import type { FastifyInstance } from 'fastify'
 import { and, asc, desc, eq, gte, ilike, lte, or, sql } from 'drizzle-orm'
 import { db } from '../db/index.js'
-import { movies, userMovies } from '../db/schema.js'
-import type { MovieFilters } from '@movie/shared'
+import { movies, userMovies, movieCredits, people } from '../db/schema.js'
+import type { MovieCreditPerson, MovieFilters, PeopleRole } from '@movie/shared'
+
+const CAST_CATEGORIES = ['actor', 'actress', 'self']
+const PEOPLE_ROLE_VALUES: PeopleRole[] = ['any', 'director', 'writer', 'producer', 'cast']
+
+function rolePredicateSql(role: PeopleRole) {
+  if (role === 'cast') {
+    const list = sql.join(CAST_CATEGORIES.map((c) => sql`${c}`), sql`, `)
+    return sql`${movieCredits.category} IN (${list})`
+  }
+  if (role === 'director' || role === 'writer' || role === 'producer') {
+    return sql`${movieCredits.category} = ${role}`
+  }
+  return sql`TRUE`
+}
 
 const WATCHLIST_FALSE = sql<boolean>`COALESCE(${userMovies.inWatchlist}, false)`
 const WATCHED_FALSE = sql<boolean>`COALESCE(${userMovies.watched}, false)`
@@ -64,6 +78,10 @@ export async function movieRoutes(app: FastifyInstance) {
     const userId = req.user.sub
     const q = req.query
     const genresList = q.genres ? q.genres.split(',').map((g) => g.trim()).filter(Boolean) : []
+    const peopleList = q.people ? q.people.split(',').map((p) => p.trim()).filter(Boolean) : []
+    const peopleRole: PeopleRole = PEOPLE_ROLE_VALUES.includes(q.peopleRole as PeopleRole)
+      ? (q.peopleRole as PeopleRole)
+      : 'any'
     const filters: MovieFilters = {
       search: q.search || undefined,
       genres: genresList.length ? genresList : undefined,
@@ -75,8 +93,10 @@ export async function movieRoutes(app: FastifyInstance) {
       minVotes: q.minVotes ? Number(q.minVotes) : undefined,
       maxVotes: q.maxVotes ? Number(q.maxVotes) : undefined,
       inWatchlist: q.inWatchlist === 'true' ? true : q.inWatchlist === 'false' ? false : undefined,
-      watched: q.watched === 'all' ? undefined : q.watched === 'true' ? true : false,
-      sortBy: (q.sortBy as MovieFilters['sortBy']) || 'createdAt',
+      watched: q.watched === 'true' ? true : q.watched === 'false' ? false : undefined,
+      people: peopleList.length ? peopleList : undefined,
+      peopleRole: peopleList.length ? peopleRole : undefined,
+      sortBy: (q.sortBy as MovieFilters['sortBy']) || 'year',
       sortOrder: (q.sortOrder as MovieFilters['sortOrder']) || 'desc',
       page: q.page ? Number(q.page) : 1,
       pageSize: q.pageSize ? Number(q.pageSize) : 20,
@@ -97,6 +117,18 @@ export async function movieRoutes(app: FastifyInstance) {
     if (filters.maxVotes !== undefined) conditions.push(lte(movies.votes, filters.maxVotes))
     if (filters.inWatchlist !== undefined) conditions.push(sql`COALESCE(${userMovies.inWatchlist}, false) = ${filters.inWatchlist}`)
     if (filters.watched !== undefined) conditions.push(sql`COALESCE(${userMovies.watched}, false) = ${filters.watched}`)
+    if (filters.people && filters.people.length) {
+      const ids = sql.join(filters.people.map((p) => sql`${p}`), sql`, `)
+      const rolePred = rolePredicateSql(filters.peopleRole ?? 'any')
+      const subquery = sql`(
+        SELECT ${movieCredits.movieId}
+        FROM ${movieCredits}
+        WHERE ${movieCredits.personId} IN (${ids}) AND (${rolePred})
+        GROUP BY ${movieCredits.movieId}
+        HAVING COUNT(DISTINCT ${movieCredits.personId}) = ${filters.people.length}
+      )`
+      conditions.push(sql`${movies.id} IN ${subquery}`)
+    }
 
     const where = conditions.length ? and(...conditions) : undefined
     const sortCol = {
@@ -139,7 +171,42 @@ export async function movieRoutes(app: FastifyInstance) {
       .where(eq(movies.id, req.params.id))
       .limit(1)
     if (!movie) return reply.code(404).send({ error: 'Not found' })
-    return movie
+
+    const creditRows = await db
+      .select({
+        id: people.id,
+        name: people.name,
+        category: movieCredits.category,
+        ordering: movieCredits.ordering,
+        job: movieCredits.job,
+        characters: movieCredits.characters,
+      })
+      .from(movieCredits)
+      .innerJoin(people, eq(people.id, movieCredits.personId))
+      .where(eq(movieCredits.movieId, movie.id))
+      .orderBy(asc(movieCredits.ordering))
+
+    const directors: MovieCreditPerson[] = []
+    const writers: MovieCreditPerson[] = []
+    const producers: MovieCreditPerson[] = []
+    const cast: MovieCreditPerson[] = []
+    const crew: MovieCreditPerson[] = []
+    for (const c of creditRows) {
+      const person: MovieCreditPerson = {
+        id: c.id,
+        name: c.name,
+        category: c.category,
+        ordering: c.ordering,
+        job: c.job,
+        characters: c.characters,
+      }
+      if (c.category === 'director') directors.push(person)
+      else if (c.category === 'writer') writers.push(person)
+      else if (c.category === 'producer') producers.push(person)
+      else if (c.category === 'actor' || c.category === 'actress' || c.category === 'self') cast.push(person)
+      else crew.push(person)
+    }
+    return { ...movie, directors, writers, producers, cast, crew }
   })
 
   app.patch<{ Params: { id: string } }>('/movies/:id/watchlist', async (req, reply) => {

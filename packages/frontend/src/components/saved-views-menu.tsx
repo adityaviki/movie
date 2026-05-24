@@ -13,6 +13,7 @@ import type { SavedView } from '@movie/shared'
 export function currentParamsString(searchParams: URLSearchParams): string {
   const next = new URLSearchParams(searchParams)
   next.delete('page')
+  next.delete('movie')
   const sorted = [...next.entries()].sort(([a], [b]) => a.localeCompare(b))
   const out = new URLSearchParams()
   for (const [k, v] of sorted) out.append(k, v)

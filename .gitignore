@@ -7,3 +7,4 @@ dist/
 *.tsbuildinfo
 packages/frontend/dist/
 packages/backend/dist/
+.misc

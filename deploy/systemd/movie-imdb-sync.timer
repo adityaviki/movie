@@ -1,0 +1,14 @@
+[Unit]
+Description=Run movie-imdb-sync.service daily at 06:00 UTC
+Requires=movie-imdb-sync.service
+
+[Timer]
+# IMDB refreshes datasets at ~00:00 UTC; we give it 6h to settle.
+OnCalendar=*-*-* 06:00:00 UTC
+# Catch up if the box was off when the timer fired.
+Persistent=true
+RandomizedDelaySec=15min
+Unit=movie-imdb-sync.service
+
+[Install]
+WantedBy=timers.target

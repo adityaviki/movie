@@ -7,6 +7,7 @@ import rateLimit from '@fastify/rate-limit'
 import { TOKEN_COOKIE } from './lib/auth.js'
 import { authRoutes } from './routes/auth.js'
 import { movieRoutes } from './routes/movies.js'
+import { peopleRoutes } from './routes/people.js'
 import { savedViewsRoutes } from './routes/saved-views.js'
 
 declare module 'fastify' {
@@ -45,6 +46,7 @@ app.decorate('requireAuth', async (req: FastifyRequest, reply: FastifyReply) => 
 
 await app.register(authRoutes, { prefix: '/api' })
 await app.register(movieRoutes, { prefix: '/api' })
+await app.register(peopleRoutes, { prefix: '/api' })
 await app.register(savedViewsRoutes, { prefix: '/api' })
 
 const port = Number(process.env.PORT) || 3001

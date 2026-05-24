@@ -9,7 +9,9 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:backfill": "tsx src/scripts/backfill-users.ts"
+    "db:backfill": "tsx src/scripts/backfill-users.ts",
+    "sync:imdb": "tsx src/scripts/sync-imdb.ts",
+    "sync:imdb:backfill": "tsx src/scripts/sync-imdb.ts --backfill"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

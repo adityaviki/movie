@@ -1,4 +1,4 @@
-import type { Movie, MovieFilters, MoviesResponse } from '@movie/shared'
+import type { Movie, MovieDetail, MovieFilters, MoviesResponse } from '@movie/shared'
 import { request } from './client'
 
 function buildQuery(filters: MovieFilters): string {
@@ -14,6 +14,8 @@ function buildQuery(filters: MovieFilters): string {
   if (filters.maxVotes !== undefined) params.set('maxVotes', String(filters.maxVotes))
   if (filters.inWatchlist !== undefined) params.set('inWatchlist', String(filters.inWatchlist))
   if (filters.watched !== undefined) params.set('watched', String(filters.watched))
+  if (filters.people && filters.people.length) params.set('people', filters.people.join(','))
+  if (filters.peopleRole) params.set('peopleRole', filters.peopleRole)
   if (filters.sortBy) params.set('sortBy', filters.sortBy)
   if (filters.sortOrder) params.set('sortOrder', filters.sortOrder)
   if (filters.page) params.set('page', String(filters.page))
@@ -35,7 +37,7 @@ export const moviesApi = {
     request<{ watchlist: number; watched: number }>('/api/movies/stats'),
 
   get: (id: string) =>
-    request<Movie>(`/api/movies/${id}`),
+    request<MovieDetail>(`/api/movies/${id}`),
 
   toggleWatchlist: (id: string) =>
     request<Movie>(`/api/movies/${id}/watchlist`, { method: 'PATCH' }),

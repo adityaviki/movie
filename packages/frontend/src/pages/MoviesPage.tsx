@@ -4,10 +4,13 @@ import { useQuery } from '@tanstack/react-query'
 import { moviesApi } from '@/api/movies'
 import { savedViewsApi } from '@/api/saved-views'
 import { MovieGrid } from '@/components/movie-grid'
+import { MovieDetailDialog } from '@/components/movie-detail-dialog'
 import { ActiveFilters, MovieFiltersSidebar, MovieFiltersTopbar, MovieSortControl } from '@/components/movie-filters'
 import { Pagination } from '@/components/pagination'
 import { SavedViewsMenu, currentParamsString } from '@/components/saved-views-menu'
-import type { MovieFilters as Filters } from '@movie/shared'
+import type { MovieFilters as Filters, PeopleRole } from '@movie/shared'
+
+const VALID_PEOPLE_ROLES: PeopleRole[] = ['any', 'director', 'writer', 'producer', 'cast']
 
 export function MoviesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -22,6 +25,10 @@ export function MoviesPage() {
     return Number.isFinite(n) ? n : undefined
   }
   const genresList = (searchParams.get('genres') ?? '').split(',').map((g) => g.trim()).filter(Boolean)
+  const peopleList = (searchParams.get('people') ?? '').split(',').map((p) => p.trim()).filter(Boolean)
+  const peopleRoleParam = searchParams.get('peopleRole') as PeopleRole | null
+  const peopleRole: PeopleRole | undefined =
+    peopleList.length && peopleRoleParam && VALID_PEOPLE_ROLES.includes(peopleRoleParam) ? peopleRoleParam : undefined
 
   const filters: Filters = {
     search: searchParams.get('search') || undefined,
@@ -33,14 +40,16 @@ export function MoviesPage() {
     maxYear: numParam('maxYear'),
     minVotes: numParam('minVotes'),
     maxVotes: numParam('maxVotes'),
-    sortBy: (searchParams.get('sortBy') as Filters['sortBy']) || 'createdAt',
+    sortBy: (searchParams.get('sortBy') as Filters['sortBy']) || 'year',
     sortOrder: (searchParams.get('sortOrder') as Filters['sortOrder']) || 'desc',
+    people: peopleList.length ? peopleList : undefined,
+    peopleRole,
     inWatchlist: searchParams.get('watchlist') === 'true' ? true : searchParams.get('watchlist') === 'false' ? false : undefined,
     watched: (() => {
       const v = searchParams.get('watched')
-      if (v === 'all') return undefined
       if (v === 'true') return true
-      return false
+      if (v === 'false') return false
+      return undefined
     })(),
     page,
     pageSize,
@@ -79,6 +88,16 @@ export function MoviesPage() {
   const total = data?.total ?? 0
   const start = (page - 1) * pageSize + 1
   const end = Math.min(page * pageSize, total)
+
+  const openMovieId = searchParams.get('movie')
+  const closeDialog = (open: boolean) => {
+    if (open) return
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete('movie')
+      return next
+    })
+  }
 
   return (
     <div className="flex flex-col gap-4 lg:flex-row lg:gap-6 lg:items-start">
@@ -120,6 +139,12 @@ export function MoviesPage() {
           </div>
         )}
       </div>
+
+      <MovieDetailDialog
+        movieId={openMovieId}
+        open={!!openMovieId}
+        onOpenChange={closeDialog}
+      />
     </div>
   )
 }

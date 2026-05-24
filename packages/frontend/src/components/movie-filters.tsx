@@ -1,7 +1,8 @@
 import { useSearchParams } from 'react-router-dom'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowDownNarrowWide, ArrowUpNarrowWide, Bookmark, Eye, Search, SlidersHorizontal, X } from 'lucide-react'
+import { ArrowDownNarrowWide, ArrowUpNarrowWide, Bookmark, Eye, Search, SlidersHorizontal, Users, X } from 'lucide-react'
+import type { PeopleRole, PersonSearchResult } from '@movie/shared'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
@@ -9,6 +10,15 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { moviesApi } from '@/api/movies'
+import { peopleApi } from '@/api/people'
+
+const ROLE_LABEL: Record<PeopleRole, string> = {
+  any: 'Any role',
+  director: 'Director',
+  writer: 'Writer',
+  producer: 'Producer',
+  cast: 'Cast',
+}
 
 const TYPE_LABEL: Record<string, string> = {
   feature: 'Feature',
@@ -50,7 +60,7 @@ export function MovieSearchBox({ className }: { className?: string }) {
 
 export function MovieSortControl() {
   const { searchParams, update } = useFilterUpdate()
-  const sortBy = searchParams.get('sortBy') ?? 'createdAt'
+  const sortBy = searchParams.get('sortBy') ?? 'year'
   const sortOrder = searchParams.get('sortOrder') ?? 'desc'
   return (
     <div className="flex items-center">
@@ -157,6 +167,8 @@ export function ActiveFilters() {
 
   const search = searchParams.get('search') ?? ''
   const selectedGenres = (searchParams.get('genres') ?? '').split(',').map((g) => g.trim()).filter(Boolean)
+  const selectedPeople = (searchParams.get('people') ?? '').split(',').map((p) => p.trim()).filter(Boolean)
+  const peopleRole = (searchParams.get('peopleRole') ?? 'any') as PeopleRole
   const type = searchParams.get('type') ?? ''
   const minYear = searchParams.get('minYear') ?? ''
   const maxYear = searchParams.get('maxYear') ?? ''
@@ -166,6 +178,19 @@ export function ActiveFilters() {
   const maxVotes = searchParams.get('maxVotes') ?? ''
   const watchlist = searchParams.get('watchlist') ?? ''
   const watched = searchParams.get('watched') ?? ''
+
+  const { data: peopleInfo = [] } = useQuery({
+    queryKey: ['people-lookup', selectedPeople.join(',')],
+    queryFn: () => peopleApi.lookup(selectedPeople),
+    enabled: selectedPeople.length > 0,
+    staleTime: 60_000,
+  })
+  const peopleName = (id: string) => peopleInfo.find((p) => p.id === id)?.name ?? id
+
+  const removePerson = (id: string) => {
+    const remaining = selectedPeople.filter((p) => p !== id)
+    update({ people: remaining.join(',') || null, peopleRole: remaining.length ? null : null })
+  }
 
   const removeGenre = (g: string) => {
     const remaining = selectedGenres.filter((x) => x !== g)
@@ -177,6 +202,11 @@ export function ActiveFilters() {
   if (search) chips.push({ key: 'search', label: `Search: ${search}`, onRemove: () => update({ search: null }) })
   for (const g of selectedGenres) {
     chips.push({ key: `genre:${g}`, label: g, onRemove: () => removeGenre(g) })
+  }
+  for (const id of selectedPeople) {
+    const name = peopleName(id)
+    const suffix = peopleRole !== 'any' ? ` (${ROLE_LABEL[peopleRole]})` : ''
+    chips.push({ key: `person:${id}`, label: `${name}${suffix}`, onRemove: () => removePerson(id) })
   }
   if (type) {
     chips.push({ key: 'type', label: `Type: ${TYPE_LABEL[type] ?? type}`, onRemove: () => update({ type: null }) })
@@ -272,6 +302,8 @@ export function MovieFiltersSidebar({ genres }: { genres: string[] }) {
   })
 
   const selectedGenres = (searchParams.get('genres') ?? '').split(',').map((g) => g.trim()).filter(Boolean)
+  const selectedPeople = (searchParams.get('people') ?? '').split(',').map((p) => p.trim()).filter(Boolean)
+  const peopleRole = (searchParams.get('peopleRole') ?? 'any') as PeopleRole
   const selectedType = searchParams.get('type') ?? ''
   const minYear = searchParams.get('minYear') ?? ''
   const maxYear = searchParams.get('maxYear') ?? ''
@@ -359,6 +391,28 @@ export function MovieFiltersSidebar({ genres }: { genres: string[] }) {
         </div>
       </Section>
 
+      <Section
+        label={`People${selectedPeople.length ? ` · ${selectedPeople.length}` : ''}`}
+        hint="Movies must include all selected people."
+      >
+        <PeoplePicker
+          selectedIds={selectedPeople}
+          role={peopleRole}
+          onAdd={(id) => {
+            if (selectedPeople.includes(id)) return
+            update({ people: [...selectedPeople, id].join(',') })
+          }}
+          onRemove={(id) => {
+            const remaining = selectedPeople.filter((p) => p !== id)
+            update({ people: remaining.join(',') || null, peopleRole: remaining.length ? null : null })
+          }}
+          onRoleChange={(role) => {
+            if (selectedPeople.length === 0) return
+            update({ peopleRole: role === 'any' ? null : role })
+          }}
+        />
+      </Section>
+
       <Section label="Type">
         <div className="flex flex-wrap gap-1.5">
           {types.map((t) => (
@@ -407,6 +461,157 @@ function PillToggle({ active, onClick, label }: { active: boolean; onClick: () =
     >
       {label}
     </button>
+  )
+}
+
+function PeoplePicker({
+  selectedIds,
+  role,
+  onAdd,
+  onRemove,
+  onRoleChange,
+}: {
+  selectedIds: string[]
+  role: PeopleRole
+  onAdd: (id: string) => void
+  onRemove: (id: string) => void
+  onRoleChange: (role: PeopleRole) => void
+}) {
+  const [q, setQ] = useState('')
+  const [debouncedQ, setDebouncedQ] = useState('')
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQ(q.trim()), 250)
+    return () => clearTimeout(id)
+  }, [q])
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [])
+
+  const { data: results = [], isFetching } = useQuery({
+    queryKey: ['people-search', debouncedQ],
+    queryFn: () => peopleApi.search(debouncedQ),
+    enabled: debouncedQ.length >= 2,
+    staleTime: 30_000,
+  })
+
+  const { data: selectedInfo = [] } = useQuery({
+    queryKey: ['people-lookup', selectedIds.join(',')],
+    queryFn: () => peopleApi.lookup(selectedIds),
+    enabled: selectedIds.length > 0,
+    staleTime: 60_000,
+  })
+
+  const filtered = useMemo<PersonSearchResult[]>(
+    () => results.filter((r) => !selectedIds.includes(r.id)),
+    [results, selectedIds],
+  )
+
+  return (
+    <div className="space-y-2" ref={containerRef}>
+      <div className="relative">
+        <Users className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+        <Input
+          placeholder="Search a person…"
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value)
+            setOpen(true)
+          }}
+          onFocus={() => setOpen(true)}
+          className="h-8 pl-7 pr-7 text-sm"
+        />
+        {q && (
+          <button
+            type="button"
+            onClick={() => setQ('')}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-muted"
+            aria-label="Clear"
+          >
+            <X className="h-3 w-3 text-muted-foreground" />
+          </button>
+        )}
+
+        {open && debouncedQ.length >= 2 && (
+          <div className="absolute z-20 mt-1 w-full rounded-md border border-border bg-popover shadow-lg max-h-64 overflow-y-auto scrollbar-minimal">
+            {isFetching && filtered.length === 0 && (
+              <div className="px-3 py-2 text-xs text-muted-foreground">Searching…</div>
+            )}
+            {!isFetching && filtered.length === 0 && (
+              <div className="px-3 py-2 text-xs text-muted-foreground">No matches</div>
+            )}
+            {filtered.map((p) => (
+              <button
+                type="button"
+                key={p.id}
+                onClick={() => {
+                  onAdd(p.id)
+                  setQ('')
+                  setOpen(false)
+                }}
+                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-between gap-2"
+              >
+                <div className="min-w-0">
+                  <div className="truncate">{p.name}</div>
+                  {p.professions.length > 0 && (
+                    <div className="truncate text-[11px] text-muted-foreground">
+                      {p.professions.slice(0, 3).join(', ')}
+                    </div>
+                  )}
+                </div>
+                <span className="text-[11px] text-muted-foreground shrink-0">{p.credits}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {selectedIds.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {selectedIds.map((id) => {
+            const name = selectedInfo.find((p) => p.id === id)?.name ?? id
+            return (
+              <span
+                key={id}
+                className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-secondary/60 pl-2.5 pr-1 py-0.5 text-xs"
+              >
+                <span className="max-w-[140px] truncate">{name}</span>
+                <button
+                  type="button"
+                  onClick={() => onRemove(id)}
+                  className="rounded-full p-0.5 hover:bg-muted text-muted-foreground hover:text-foreground"
+                  aria-label={`Remove ${name}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )
+          })}
+        </div>
+      )}
+
+      {selectedIds.length > 0 && (
+        <Select value={role} onValueChange={(v) => onRoleChange(v as PeopleRole)}>
+          <SelectTrigger size="sm" className="h-8 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="any">Any role</SelectItem>
+            <SelectItem value="director">Director</SelectItem>
+            <SelectItem value="writer">Writer</SelectItem>
+            <SelectItem value="producer">Producer</SelectItem>
+            <SelectItem value="cast">Cast</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
+    </div>
   )
 }
 

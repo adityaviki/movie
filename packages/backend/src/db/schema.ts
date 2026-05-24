@@ -1,4 +1,4 @@
-import { pgTable, text, integer, doublePrecision, boolean, timestamp, primaryKey } from 'drizzle-orm/pg-core'
+import { pgTable, text, integer, doublePrecision, boolean, timestamp, primaryKey, index } from 'drizzle-orm/pg-core'
 
 export const movies = pgTable('Movie', {
   id: text('id').primaryKey(),
@@ -56,6 +56,36 @@ export const savedViews = pgTable('SavedView', {
   updatedAt: timestamp('updatedAt', { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const people = pgTable('Person', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  birthYear: integer('birthYear'),
+  deathYear: integer('deathYear'),
+  professions: text('professions').array().notNull().default([]),
+  updatedAt: timestamp('updatedAt', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const movieCredits = pgTable(
+  'MovieCredit',
+  {
+    movieId: text('movieId')
+      .notNull()
+      .references(() => movies.id, { onDelete: 'cascade' }),
+    personId: text('personId')
+      .notNull()
+      .references(() => people.id, { onDelete: 'cascade' }),
+    category: text('category').notNull(),
+    ordering: integer('ordering').notNull(),
+    job: text('job'),
+    characters: text('characters').array(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.movieId, t.personId, t.category, t.ordering] }),
+    index('MovieCredit_movieId_idx').on(t.movieId),
+    index('MovieCredit_personId_idx').on(t.personId),
+  ],
+)
+
 export type Movie = typeof movies.$inferSelect
 export type NewMovie = typeof movies.$inferInsert
 export type User = typeof users.$inferSelect
@@ -64,3 +94,7 @@ export type UserMovie = typeof userMovies.$inferSelect
 export type NewUserMovie = typeof userMovies.$inferInsert
 export type SavedView = typeof savedViews.$inferSelect
 export type NewSavedView = typeof savedViews.$inferInsert
+export type Person = typeof people.$inferSelect
+export type NewPerson = typeof people.$inferInsert
+export type MovieCredit = typeof movieCredits.$inferSelect
+export type NewMovieCredit = typeof movieCredits.$inferInsert

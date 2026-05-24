@@ -1,0 +1,25 @@
+[Unit]
+Description=Daily IMDB dataset sync for the movie app
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/movie
+EnvironmentFile=/etc/movie-sync.env
+ExecStart=/usr/bin/env pnpm --filter @movie/backend sync:imdb
+
+# Bound resource usage so the sync never starves the API process.
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+MemoryHigh=1G
+MemoryMax=1500M
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/home/ubuntu/movie /var/lib/movie-sync
