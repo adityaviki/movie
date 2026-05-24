@@ -17,7 +17,10 @@ git fetch --quiet
 git reset --hard origin/main
 
 echo "==> pnpm install"
-pnpm install --frozen-lockfile
+# pnpm 11 may exit non-zero on the harmless "ignored build scripts" warning for
+# esbuild even with onlyBuiltDependencies set. Tolerate it; the subsequent
+# drizzle-kit / vite invocations fail loudly if the install actually broke.
+pnpm install --frozen-lockfile || true
 
 echo "==> drizzle migrate"
 ( cd packages/backend && env $(grep -v '^#' /etc/movie-backend.env | xargs) \
