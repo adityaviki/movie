@@ -1,9 +1,126 @@
 {
-  "id": "0604797c-e23f-4c60-aff1-5b712d5c9a16",
+  "id": "b0d6a70c-b99c-4197-841f-5265ee235086",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.MovieCredit": {
+      "name": "MovieCredit",
+      "schema": "",
+      "columns": {
+        "movieId": {
+          "name": "movieId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "personId": {
+          "name": "personId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordering": {
+          "name": "ordering",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "job": {
+          "name": "job",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "characters": {
+          "name": "characters",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "MovieCredit_movieId_idx": {
+          "name": "MovieCredit_movieId_idx",
+          "columns": [
+            {
+              "expression": "movieId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "MovieCredit_personId_idx": {
+          "name": "MovieCredit_personId_idx",
+          "columns": [
+            {
+              "expression": "personId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "MovieCredit_movieId_Movie_id_fk": {
+          "name": "MovieCredit_movieId_Movie_id_fk",
+          "tableFrom": "MovieCredit",
+          "tableTo": "Movie",
+          "columnsFrom": [
+            "movieId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "MovieCredit_personId_Person_id_fk": {
+          "name": "MovieCredit_personId_Person_id_fk",
+          "tableFrom": "MovieCredit",
+          "tableTo": "Person",
+          "columnsFrom": [
+            "personId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "MovieCredit_movieId_personId_category_ordering_pk": {
+          "name": "MovieCredit_movieId_personId_category_ordering_pk",
+          "columns": [
+            "movieId",
+            "personId",
+            "category",
+            "ordering"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.Movie": {
       "name": "Movie",
       "schema": "",
@@ -81,20 +198,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "inWatchlist": {
-          "name": "inWatchlist",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "watched": {
-          "name": "watched",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp with time zone",
@@ -122,6 +225,122 @@
           ]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.Person": {
+      "name": "Person",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "birthYear": {
+          "name": "birthYear",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deathYear": {
+          "name": "deathYear",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "professions": {
+          "name": "professions",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.SavedView": {
+      "name": "SavedView",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "params": {
+          "name": "params",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "SavedView_userId_User_id_fk": {
+          "name": "SavedView_userId_User_id_fk",
+          "tableFrom": "SavedView",
+          "tableTo": "User",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -230,6 +449,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "passwordHash": {
           "name": "passwordHash",
           "type": "text",
@@ -238,6 +463,12 @@
         },
         "name": {
           "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "defaultView": {
+          "name": "defaultView",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -266,6 +497,13 @@
           "nullsNotDistinct": false,
           "columns": [
             "email"
+          ]
+        },
+        "User_username_unique": {
+          "name": "User_username_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "username"
           ]
         }
       },

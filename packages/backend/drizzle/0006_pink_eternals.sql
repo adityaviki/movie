@@ -1,1 +1,0 @@
-ALTER TABLE "UserMovie" DROP COLUMN "hidden";

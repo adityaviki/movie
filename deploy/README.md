@@ -103,9 +103,8 @@ pnpm --filter @movie/frontend build
 Uncomment the `SEED_USER_*` lines in `/etc/movie-backend.env`, then:
 
 ```bash
-sudo systemctl set-environment $(cat /etc/movie-backend.env | grep '^SEED_USER_')
 cd /home/ubuntu/movie/packages/backend
-env $(grep -v '^#' /etc/movie-backend.env | xargs) pnpm db:backfill
+env $(grep -v '^#' /etc/movie-backend.env | xargs) pnpm db:seed
 ```
 
 Comment out (or remove) the `SEED_USER_*` lines afterwards so the credentials

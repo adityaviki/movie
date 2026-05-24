@@ -1,10 +1,8 @@
 node_modules/
 dist/
-.next/
 .env*
 *.pem
 .DS_Store
 *.tsbuildinfo
 packages/frontend/dist/
 packages/backend/dist/
-.misc

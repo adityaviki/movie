@@ -9,7 +9,7 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:backfill": "tsx src/scripts/backfill-users.ts",
+    "db:seed": "tsx src/scripts/seed-user.ts",
     "sync:imdb": "tsx src/scripts/sync-imdb.ts",
     "sync:imdb:backfill": "tsx src/scripts/sync-imdb.ts --backfill"
   },

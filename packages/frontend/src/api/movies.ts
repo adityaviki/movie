@@ -33,9 +33,6 @@ export const moviesApi = {
   types: () =>
     request<{ type: string; count: number }[]>('/api/movies/types'),
 
-  stats: () =>
-    request<{ watchlist: number; watched: number }>('/api/movies/stats'),
-
   get: (id: string) =>
     request<MovieDetail>(`/api/movies/${id}`),
 

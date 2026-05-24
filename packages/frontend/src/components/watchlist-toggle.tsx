@@ -8,7 +8,6 @@ export function WatchlistToggle({ movieId, inWatchlist }: { movieId: string; inW
     mutationFn: () => moviesApi.toggleWatchlist(movieId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['movies'] })
-      queryClient.invalidateQueries({ queryKey: ['movie-stats'] })
     },
   })
 

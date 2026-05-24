@@ -31,10 +31,6 @@ export function cookieOptions(): CookieSerializeOptions {
   }
 }
 
-export function isValidEmail(s: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)
-}
-
 export function normalizeUsername(raw: string) {
   return raw.trim().toLowerCase()
 }

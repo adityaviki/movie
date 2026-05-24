@@ -52,18 +52,6 @@ export async function movieRoutes(app: FastifyInstance) {
     return Array.from(set).sort()
   })
 
-  app.get('/movies/stats', async (req) => {
-    const userId = req.user.sub
-    const [stats] = await db
-      .select({
-        watchlist: sql<number>`COUNT(*) FILTER (WHERE ${userMovies.inWatchlist} = true)::int`,
-        watched: sql<number>`COUNT(*) FILTER (WHERE ${userMovies.watched} = true)::int`,
-      })
-      .from(userMovies)
-      .where(eq(userMovies.userId, userId))
-    return stats ?? { watchlist: 0, watched: 0 }
-  })
-
   app.get('/movies/types', async () => {
     const rows = await db
       .select({ type: movies.type, count: sql<number>`count(*)::int` })

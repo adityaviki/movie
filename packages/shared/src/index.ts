@@ -63,22 +63,6 @@ export interface PersonSearchResult {
   credits: number
 }
 
-export interface MovieFormData {
-  title: string
-  imdbId?: string
-  year?: number
-  type?: string
-  rating?: number
-  votes?: number
-  genres: string[]
-  runtime?: string
-  certificate?: string
-  description?: string
-  posterUrl?: string
-  inWatchlist?: boolean
-  watched?: boolean
-}
-
 export interface MoviesResponse {
   movies: Movie[]
   total: number

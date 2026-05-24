@@ -8,7 +8,6 @@ export function WatchedToggle({ movieId, watched }: { movieId: string; watched: 
     mutationFn: () => moviesApi.toggleWatched(movieId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['movies'] })
-      queryClient.invalidateQueries({ queryKey: ['movie-stats'] })
     },
   })
 
