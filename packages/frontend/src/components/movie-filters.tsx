@@ -7,7 +7,9 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 import { moviesApi } from '@/api/movies'
 import { peopleApi } from '@/api/people'
@@ -58,14 +60,14 @@ export function MovieSearchBox({ className }: { className?: string }) {
   )
 }
 
-export function MovieSortControl() {
+export function MovieSortControl({ className }: { className?: string }) {
   const { searchParams, update } = useFilterUpdate()
   const sortBy = searchParams.get('sortBy') ?? 'year'
   const sortOrder = searchParams.get('sortOrder') ?? 'desc'
   return (
-    <div className="flex items-center">
+    <div className={cn('flex items-center', className)}>
       <Select value={sortBy} onValueChange={(v) => update({ sortBy: v })}>
-        <SelectTrigger size="sm" className="w-[140px] rounded-r-none border-r-0">
+        <SelectTrigger size="sm" className="data-[size=sm]:h-10 sm:data-[size=sm]:h-8 w-[120px] sm:w-[140px] rounded-r-none border-r-0">
           <SelectValue placeholder="Sort" />
         </SelectTrigger>
         <SelectContent>
@@ -79,7 +81,7 @@ export function MovieSortControl() {
       <Button
         variant="outline"
         size="sm"
-        className="h-8 rounded-l-none px-2"
+        className="h-10 sm:h-8 rounded-l-none px-2"
         aria-label={sortOrder === 'asc' ? 'Sort ascending' : 'Sort descending'}
         onClick={() => update({ sortOrder: sortOrder === 'asc' ? 'desc' : 'asc' })}
       >
@@ -93,40 +95,6 @@ export function MovieSortControl() {
   )
 }
 
-export function MovieFiltersTopbar() {
-  const { searchParams, setSearchParams } = useFilterUpdate()
-  const watchlistOn = searchParams.get('watchlist') === 'true'
-  const watchedOn = searchParams.get('watched') === 'true'
-
-  const toggleParam = (key: string, onValue: string, currentlyOn: boolean) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev)
-      if (currentlyOn) next.delete(key)
-      else next.set(key, onValue)
-      next.delete('page')
-      return next
-    })
-  }
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <ToggleButton
-        active={watchlistOn}
-        onClick={() => toggleParam('watchlist', 'true', watchlistOn)}
-        icon={<Bookmark className="h-3.5 w-3.5" />}
-        label="Watchlist"
-        title={watchlistOn ? 'Showing only watchlist · click to clear' : 'Show only watchlist'}
-      />
-      <ToggleButton
-        active={watchedOn}
-        onClick={() => toggleParam('watched', 'true', watchedOn)}
-        icon={<Eye className="h-3.5 w-3.5" />}
-        label="Watched"
-        title={watchedOn ? 'Showing only watched · click to clear' : 'Show only watched'}
-      />
-    </div>
-  )
-}
 
 function ToggleButton({
   active,
@@ -147,7 +115,7 @@ function ToggleButton({
       onClick={onClick}
       title={title}
       className={cn(
-        'inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-sm transition-colors',
+        'inline-flex h-10 sm:h-8 items-center gap-1.5 rounded-md border px-3 text-sm transition-colors',
         active
           ? 'bg-primary text-primary-foreground border-primary'
           : 'bg-transparent border-input hover:bg-accent hover:text-accent-foreground',
@@ -278,17 +246,41 @@ export function ActiveFilters() {
 
 function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-secondary/60 pl-2.5 pr-1 py-0.5 text-xs">
-      <span>{label}</span>
+    <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-border/60 bg-secondary/60 pl-2.5 pr-1 py-0.5 text-xs">
+      <span className="max-w-[180px] truncate">{label}</span>
       <button
         type="button"
         onClick={onRemove}
-        className="rounded-full p-0.5 hover:bg-muted text-muted-foreground hover:text-foreground"
+        className="shrink-0 rounded-full p-1 sm:p-0.5 hover:bg-muted text-muted-foreground hover:text-foreground"
         aria-label={`Remove ${label}`}
       >
         <X className="h-3 w-3" />
       </button>
     </span>
+  )
+}
+
+export function LibraryToggles() {
+  const { searchParams, update } = useFilterUpdate()
+  const watchlistOn = searchParams.get('watchlist') === 'true'
+  const watchedOn = searchParams.get('watched') === 'true'
+  return (
+    <>
+      <ToggleButton
+        active={watchlistOn}
+        onClick={() => update({ watchlist: watchlistOn ? null : 'true' })}
+        icon={<Bookmark className="h-3.5 w-3.5" />}
+        label="Watchlist"
+        title={watchlistOn ? 'Showing only watchlist · click to clear' : 'Show only watchlist'}
+      />
+      <ToggleButton
+        active={watchedOn}
+        onClick={() => update({ watched: watchedOn ? null : 'true' })}
+        icon={<Eye className="h-3.5 w-3.5" />}
+        label="Watched"
+        title={watchedOn ? 'Showing only watched · click to clear' : 'Show only watched'}
+      />
+    </>
   )
 }
 
@@ -341,6 +333,14 @@ export function MovieFiltersSidebar({ genres }: { genres: string[] }) {
       </div>
 
       <Separator />
+
+      <div className="lg:hidden">
+        <Section label="Library">
+          <div className="flex flex-wrap gap-2">
+            <LibraryToggles />
+          </div>
+        </Section>
+      </div>
 
       <Section label="Rating">
         <RangeInputs
@@ -440,9 +440,9 @@ function Section({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</Label>
+      <Label className="text-xs sm:text-[11px] uppercase tracking-wide text-muted-foreground">{label}</Label>
       {children}
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+      {hint && <p className="text-xs sm:text-[11px] text-muted-foreground">{hint}</p>}
     </div>
   )
 }
@@ -453,7 +453,7 @@ function PillToggle({ active, onClick, label }: { active: boolean; onClick: () =
       type="button"
       onClick={onClick}
       className={cn(
-        'px-2.5 py-1 rounded-full text-xs border transition-colors',
+        'px-3 py-1.5 sm:px-2.5 sm:py-1 rounded-full text-xs border transition-colors',
         active
           ? 'bg-primary text-primary-foreground border-primary'
           : 'bg-transparent text-foreground border-border hover:bg-muted',
@@ -480,20 +480,11 @@ function PeoplePicker({
   const [q, setQ] = useState('')
   const [debouncedQ, setDebouncedQ] = useState('')
   const [open, setOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedQ(q.trim()), 250)
     return () => clearTimeout(id)
   }, [q])
-
-  useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onDocClick)
-    return () => document.removeEventListener('mousedown', onDocClick)
-  }, [])
 
   const { data: results = [], isFetching } = useQuery({
     queryKey: ['people-search', debouncedQ],
@@ -514,64 +505,72 @@ function PeoplePicker({
     [results, selectedIds],
   )
 
-  return (
-    <div className="space-y-2" ref={containerRef}>
-      <div className="relative">
-        <Users className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-        <Input
-          placeholder="Search a person…"
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value)
-            setOpen(true)
-          }}
-          onFocus={() => setOpen(true)}
-          className="h-8 pl-7 pr-7 text-sm"
-        />
-        {q && (
-          <button
-            type="button"
-            onClick={() => setQ('')}
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-muted"
-            aria-label="Clear"
-          >
-            <X className="h-3 w-3 text-muted-foreground" />
-          </button>
-        )}
+  const showPopover = open && debouncedQ.length >= 2
 
-        {open && debouncedQ.length >= 2 && (
-          <div className="absolute z-20 mt-1 w-full rounded-md border border-border bg-popover shadow-lg max-h-64 overflow-y-auto scrollbar-minimal">
-            {isFetching && filtered.length === 0 && (
-              <div className="px-3 py-2 text-xs text-muted-foreground">Searching…</div>
-            )}
-            {!isFetching && filtered.length === 0 && (
-              <div className="px-3 py-2 text-xs text-muted-foreground">No matches</div>
-            )}
-            {filtered.map((p) => (
+  return (
+    <div className="space-y-2">
+      <Popover open={showPopover} onOpenChange={setOpen}>
+        <PopoverAnchor asChild>
+          <div className="relative">
+            <Users className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Search a person…"
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value)
+                setOpen(true)
+              }}
+              onFocus={() => setOpen(true)}
+              className="h-9 sm:h-8 pl-7 pr-7 text-sm"
+            />
+            {q && (
               <button
                 type="button"
-                key={p.id}
-                onClick={() => {
-                  onAdd(p.id)
-                  setQ('')
-                  setOpen(false)
-                }}
-                className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-between gap-2"
+                onClick={() => setQ('')}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-1 sm:p-0.5 hover:bg-muted"
+                aria-label="Clear"
               >
-                <div className="min-w-0">
-                  <div className="truncate">{p.name}</div>
-                  {p.professions.length > 0 && (
-                    <div className="truncate text-[11px] text-muted-foreground">
-                      {p.professions.slice(0, 3).join(', ')}
-                    </div>
-                  )}
-                </div>
-                <span className="text-[11px] text-muted-foreground shrink-0">{p.credits}</span>
+                <X className="h-3 w-3 text-muted-foreground" />
               </button>
-            ))}
+            )}
           </div>
-        )}
-      </div>
+        </PopoverAnchor>
+        <PopoverContent
+          align="start"
+          sideOffset={4}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          className="w-[var(--radix-popover-trigger-width)] p-0 max-h-64 overflow-y-auto scrollbar-minimal"
+        >
+          {isFetching && filtered.length === 0 && (
+            <div className="px-3 py-2 text-xs text-muted-foreground">Searching…</div>
+          )}
+          {!isFetching && filtered.length === 0 && (
+            <div className="px-3 py-2 text-xs text-muted-foreground">No matches</div>
+          )}
+          {filtered.map((p) => (
+            <button
+              type="button"
+              key={p.id}
+              onClick={() => {
+                onAdd(p.id)
+                setQ('')
+                setOpen(false)
+              }}
+              className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-between gap-2"
+            >
+              <div className="min-w-0">
+                <div className="truncate">{p.name}</div>
+                {p.professions.length > 0 && (
+                  <div className="truncate text-[11px] text-muted-foreground">
+                    {p.professions.slice(0, 3).join(', ')}
+                  </div>
+                )}
+              </div>
+              <span className="text-[11px] text-muted-foreground shrink-0">{p.credits}</span>
+            </button>
+          ))}
+        </PopoverContent>
+      </Popover>
 
       {selectedIds.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
@@ -599,7 +598,7 @@ function PeoplePicker({
 
       {selectedIds.length > 0 && (
         <Select value={role} onValueChange={(v) => onRoleChange(v as PeopleRole)}>
-          <SelectTrigger size="sm" className="h-8 text-sm">
+          <SelectTrigger size="sm" className="data-[size=sm]:h-10 sm:data-[size=sm]:h-8 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -707,7 +706,7 @@ function RangeInputs({
   }, [localMin, localMax, onCommit])
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
       <Input
         type="number"
         inputMode="numeric"
@@ -717,9 +716,9 @@ function RangeInputs({
         placeholder={minPlaceholder}
         value={localMin}
         onChange={(e) => setLocalMin(e.target.value)}
-        className="h-8 w-full"
+        className="h-9 sm:h-8 w-full"
       />
-      <span className="text-xs text-muted-foreground shrink-0">to</span>
+      <span className="text-xs text-muted-foreground shrink-0 hidden sm:inline">to</span>
       <Input
         type="number"
         inputMode="numeric"
@@ -729,8 +728,70 @@ function RangeInputs({
         placeholder={maxPlaceholder}
         value={localMax}
         onChange={(e) => setLocalMax(e.target.value)}
-        className="h-8 w-full"
+        className="h-9 sm:h-8 w-full"
       />
     </div>
+  )
+}
+
+const FILTER_PARAM_KEYS = [
+  'search',
+  'genres',
+  'people',
+  'peopleRole',
+  'type',
+  'minRating',
+  'maxRating',
+  'minYear',
+  'maxYear',
+  'minVotes',
+  'maxVotes',
+  'watchlist',
+  'watched',
+]
+
+function countActiveFilters(searchParams: URLSearchParams): number {
+  let n = 0
+  for (const key of FILTER_PARAM_KEYS) {
+    const v = searchParams.get(key)
+    if (!v) continue
+    if (key === 'genres' || key === 'people') {
+      n += v.split(',').map((s) => s.trim()).filter(Boolean).length
+    } else if (key === 'peopleRole') {
+      // role only counts when 'people' has values; skip standalone.
+      continue
+    } else {
+      n += 1
+    }
+  }
+  return n
+}
+
+export function MobileFiltersSheet({ genres }: { genres: string[] }) {
+  const [open, setOpen] = useState(false)
+  const [searchParams] = useSearchParams()
+  const activeCount = countActiveFilters(searchParams)
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button variant="outline" size="sm" className="h-10 sm:h-8 lg:hidden">
+          <SlidersHorizontal className="h-4 w-4" />
+          <span>Filters</span>
+          {activeCount > 0 && (
+            <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-medium text-primary-foreground">
+              {activeCount}
+            </span>
+          )}
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-full max-w-none sm:w-[85vw] sm:max-w-sm p-0">
+        <SheetHeader>
+          <SheetTitle>Filters</SheetTitle>
+        </SheetHeader>
+        <div className="flex-1 overflow-y-auto scrollbar-minimal px-4 py-4">
+          <MovieFiltersSidebar genres={genres} />
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }

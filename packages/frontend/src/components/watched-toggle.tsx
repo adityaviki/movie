@@ -16,9 +16,9 @@ export function WatchedToggle({ movieId, watched }: { movieId: string; watched: 
       disabled={isPending}
       onClick={(e) => { e.preventDefault(); e.stopPropagation(); mutate() }}
       title={watched ? 'Mark as unwatched' : 'Mark as watched'}
-      className="h-7 w-7 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white/80 hover:text-white hover:bg-black/60 transition-colors disabled:opacity-50"
+      className="h-9 w-9 sm:h-7 sm:w-7 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white/80 hover:text-white hover:bg-black/60 transition-colors disabled:opacity-50"
     >
-      <Eye className={`h-3.5 w-3.5 ${watched ? 'fill-green-400 text-green-400' : ''}`} />
+      <Eye className={`h-4 w-4 sm:h-3.5 sm:w-3.5 ${watched ? 'fill-green-400 text-green-400' : ''}`} />
     </button>
   )
 }

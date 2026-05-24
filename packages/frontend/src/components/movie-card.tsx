@@ -39,7 +39,7 @@ export function MovieCard({ movie }: { movie: Movie }) {
         ) : (
           <div className="flex h-full items-center justify-center text-muted-foreground text-sm">No Poster</div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30 opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity duration-300" />
         {movie.watched && (
           <div className="absolute top-0 left-0 w-10 h-10 overflow-hidden pointer-events-none">
             <div className="absolute top-[5px] left-[-14px] w-[60px] bg-primary/85 text-primary-foreground text-[8px] font-semibold text-center py-[2px] rotate-[-45deg] shadow-sm backdrop-blur-sm">
@@ -47,7 +47,7 @@ export function MovieCard({ movie }: { movie: Movie }) {
             </div>
           </div>
         )}
-        <div className="absolute top-1.5 right-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="absolute top-1.5 right-1.5 flex gap-0.5 opacity-100 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 transition-opacity duration-300">
           <WatchlistToggle movieId={movie.id} inWatchlist={movie.inWatchlist} />
           <WatchedToggle movieId={movie.id} watched={movie.watched} />
         </div>

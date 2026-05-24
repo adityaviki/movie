@@ -11,12 +11,24 @@ export function Pagination({ page, pageSize, total }: { page: number; pageSize: 
   if (totalPages <= 1) return null
 
   return (
-    <div className="flex items-center gap-2 text-sm">
-      <Button variant="outline" size="icon" disabled={page <= 1} onClick={() => go(page - 1)}>
+    <div className="flex w-full sm:w-auto items-center justify-between sm:justify-center gap-3 text-sm">
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-10 w-10 sm:h-9 sm:w-9"
+        disabled={page <= 1}
+        onClick={() => go(page - 1)}
+      >
         <ChevronLeft className="h-4 w-4" />
       </Button>
       <span className="text-muted-foreground">{page} / {totalPages}</span>
-      <Button variant="outline" size="icon" disabled={page >= totalPages} onClick={() => go(page + 1)}>
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-10 w-10 sm:h-9 sm:w-9"
+        disabled={page >= totalPages}
+        onClick={() => go(page + 1)}
+      >
         <ChevronRight className="h-4 w-4" />
       </Button>
     </div>

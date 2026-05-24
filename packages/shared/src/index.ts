@@ -83,20 +83,3 @@ export interface AuthResponse {
   user: User
 }
 
-export interface SavedView {
-  id: string
-  name: string
-  params: string
-  createdAt: string
-  updatedAt: string
-}
-
-export interface SavedViewInput {
-  name: string
-  params: string
-}
-
-export interface SavedViewsResponse {
-  views: SavedView[]
-  defaultView: string | null
-}

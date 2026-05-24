@@ -23,7 +23,6 @@ export const users = pgTable('User', {
   username: text('username').notNull().unique(),
   passwordHash: text('passwordHash').notNull(),
   name: text('name'),
-  defaultView: text('defaultView'),
   createdAt: timestamp('createdAt', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).notNull().defaultNow(),
 })
@@ -44,17 +43,6 @@ export const userMovies = pgTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.movieId] })],
 )
-
-export const savedViews = pgTable('SavedView', {
-  id: text('id').primaryKey(),
-  userId: text('userId')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  params: text('params').notNull(),
-  createdAt: timestamp('createdAt', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updatedAt', { withTimezone: true }).notNull().defaultNow(),
-})
 
 export const people = pgTable('Person', {
   id: text('id').primaryKey(),
@@ -92,8 +80,6 @@ export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
 export type UserMovie = typeof userMovies.$inferSelect
 export type NewUserMovie = typeof userMovies.$inferInsert
-export type SavedView = typeof savedViews.$inferSelect
-export type NewSavedView = typeof savedViews.$inferInsert
 export type Person = typeof people.$inferSelect
 export type NewPerson = typeof people.$inferInsert
 export type MovieCredit = typeof movieCredits.$inferSelect

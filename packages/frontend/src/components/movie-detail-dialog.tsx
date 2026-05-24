@@ -49,7 +49,7 @@ export function MovieDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto scrollbar-minimal">
+      <DialogContent className="sm:max-w-2xl md:max-w-3xl max-h-[92vh] overflow-y-auto scrollbar-minimal p-4 sm:p-6">
         {isLoading || !movie ? (
           <div className="space-y-3">
             <DialogTitle className="sr-only">Loading</DialogTitle>
@@ -62,9 +62,9 @@ export function MovieDetailDialog({
             <DialogDescription className="sr-only">
               {movie.description ?? `${movie.title} details`}
             </DialogDescription>
-            <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex flex-col md:flex-row gap-4 md:gap-6">
               <div className="shrink-0 mx-auto md:mx-0">
-                <div className="relative w-[200px] aspect-[2/3] bg-muted rounded-lg overflow-hidden">
+                <div className="relative w-[140px] sm:w-[180px] md:w-[200px] aspect-[2/3] bg-muted rounded-lg overflow-hidden">
                   {movie.posterUrl ? (
                     <img src={movie.posterUrl} alt={movie.title} className="object-cover w-full h-full" />
                   ) : (

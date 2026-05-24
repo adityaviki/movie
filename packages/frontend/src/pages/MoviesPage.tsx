@@ -1,13 +1,10 @@
-import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { moviesApi } from '@/api/movies'
-import { savedViewsApi } from '@/api/saved-views'
 import { MovieGrid } from '@/components/movie-grid'
 import { MovieDetailDialog } from '@/components/movie-detail-dialog'
-import { ActiveFilters, MovieFiltersSidebar, MovieFiltersTopbar, MovieSortControl } from '@/components/movie-filters'
+import { ActiveFilters, LibraryToggles, MobileFiltersSheet, MovieFiltersSidebar, MovieSortControl } from '@/components/movie-filters'
 import { Pagination } from '@/components/pagination'
-import { SavedViewsMenu, currentParamsString } from '@/components/saved-views-menu'
 import type { MovieFilters as Filters, PeopleRole } from '@movie/shared'
 
 const VALID_PEOPLE_ROLES: PeopleRole[] = ['any', 'director', 'writer', 'producer', 'cast']
@@ -66,25 +63,6 @@ export function MoviesPage() {
     staleTime: Infinity,
   })
 
-  const { data: savedViews } = useQuery({
-    queryKey: ['saved-views'],
-    queryFn: savedViewsApi.list,
-    staleTime: 60_000,
-  })
-
-  const autoApplied = useRef(false)
-  useEffect(() => {
-    if (autoApplied.current) return
-    if (!savedViews) return
-    autoApplied.current = true
-    if (currentParamsString(searchParams) !== '') return
-    const def = savedViews.defaultView
-    if (!def) return
-    const params = savedViews.views.find((v) => v.id === def)?.params
-    if (!params) return
-    setSearchParams(new URLSearchParams(params), { replace: true })
-  }, [savedViews, searchParams, setSearchParams])
-
   const total = data?.total ?? 0
   const start = (page - 1) * pageSize + 1
   const end = Math.min(page * pageSize, total)
@@ -101,17 +79,17 @@ export function MoviesPage() {
 
   return (
     <div className="flex flex-col gap-4 lg:flex-row lg:gap-6 lg:items-start">
-      <aside className="lg:sticky lg:top-20 lg:w-64 lg:shrink-0 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto scrollbar-minimal rounded-xl bg-card/60 backdrop-blur-md border border-border/50 px-4 py-4">
+      <aside className="hidden lg:block lg:sticky lg:top-20 lg:w-72 lg:shrink-0 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto scrollbar-minimal rounded-xl bg-card/60 backdrop-blur-md border border-border/50 px-4 py-4">
         <MovieFiltersSidebar genres={genres} />
       </aside>
 
       <div className="flex-1 min-w-0 space-y-4">
-        <div className="rounded-xl bg-card/60 backdrop-blur-md border border-border/50 px-4 py-3 flex flex-wrap items-center gap-2">
-          <SavedViewsMenu />
-          <div className="flex-1 min-w-0">
-            <MovieFiltersTopbar />
+        <div className="rounded-xl bg-card/60 backdrop-blur-md border border-border/50 px-3 py-2 sm:px-4 sm:py-3 flex flex-wrap items-center gap-2">
+          <MobileFiltersSheet genres={genres} />
+          <div className="hidden lg:flex items-center gap-2">
+            <LibraryToggles />
           </div>
-          <MovieSortControl />
+          <MovieSortControl className="ml-auto" />
         </div>
 
         <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -134,7 +112,7 @@ export function MoviesPage() {
         )}
 
         {total > pageSize && (
-          <div className="flex justify-center pt-2">
+          <div className="flex sm:justify-center pt-2">
             <Pagination page={page} pageSize={pageSize} total={total} />
           </div>
         )}
