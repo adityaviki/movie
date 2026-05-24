@@ -49,7 +49,7 @@ export function MovieDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl md:max-w-3xl max-h-[92vh] overflow-y-auto scrollbar-minimal p-4 sm:p-6">
+      <DialogContent className="top-0 left-0 translate-x-0 translate-y-0 max-w-none w-screen h-[100dvh] max-h-[100dvh] rounded-none border-0 sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-2xl sm:w-full sm:h-auto sm:max-h-[92vh] sm:rounded-lg sm:border md:max-w-3xl overflow-y-auto scrollbar-minimal p-4 sm:p-6">
         {isLoading || !movie ? (
           <div className="space-y-3">
             <DialogTitle className="sr-only">Loading</DialogTitle>
