@@ -1,0 +1,23 @@
+[Unit]
+Description=Movie app Fastify backend
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/movie/packages/backend
+EnvironmentFile=/etc/movie-backend.env
+ExecStart=/usr/bin/env pnpm start
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/home/ubuntu/movie
+
+[Install]
+WantedBy=multi-user.target

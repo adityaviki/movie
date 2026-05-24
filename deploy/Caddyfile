@@ -1,0 +1,31 @@
+# /etc/caddy/Caddyfile
+#
+# Auto-HTTPS via Let's Encrypt. Caddy renews certificates on its own.
+# Serves the built frontend statically and reverse-proxies the API.
+
+movies.adityaviki.com {
+	encode zstd gzip
+
+	# Forward /api/* to the Fastify backend on localhost.
+	handle /api/* {
+		reverse_proxy 127.0.0.1:3001
+	}
+
+	# Everything else: serve the Vite-built frontend with SPA fallback.
+	handle {
+		root * /home/ubuntu/movie/packages/frontend/dist
+		try_files {path} /index.html
+		file_server
+	}
+
+	# Sensible security headers. HSTS only after you're confident TLS is working.
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		# Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	log {
+		output file /var/log/caddy/movies.adityaviki.com.log
+	}
+}
