@@ -9,8 +9,6 @@ you find the one film you actually want to watch tonight. This is the opposite: 
 quiet, fast catalogue you own, where "well-rated thrillers from the 90s I haven't
 seen yet" is a query, not a recommendation carousel.
 
-Live at [movies.adityaviki.com](https://movies.adityaviki.com).
-
 ![Movie Library browse page: a poster grid with a filter sidebar for rating, year, genre, people, and type](docs/screenshot.png)
 
 ## Features
