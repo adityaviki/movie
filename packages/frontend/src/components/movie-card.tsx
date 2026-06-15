@@ -1,13 +1,19 @@
 import { useSearchParams } from 'react-router-dom'
-import { Badge } from '@/components/ui/badge'
-import { Star } from 'lucide-react'
+import { Star, Tv, Film } from 'lucide-react'
 import { WatchlistToggle } from '@/components/watchlist-toggle'
 import { WatchedToggle } from '@/components/watched-toggle'
 import type { Movie } from '@movie/shared'
 
 const compactFmt = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 })
 
+const TV_TYPES = new Set(['tv_series', 'tvMiniSeries', 'tvSpecial'])
+function mediaIcon(type: string | null) {
+  if (!type) return null
+  return TV_TYPES.has(type) ? Tv : Film
+}
+
 export function MovieCard({ movie }: { movie: Movie }) {
+  const KindIcon = mediaIcon(movie.type)
   const [, setSearchParams] = useSearchParams()
   const openDetail = () => {
     setSearchParams((prev) => {
@@ -54,27 +60,21 @@ export function MovieCard({ movie }: { movie: Movie }) {
       </div>
       <div className="mt-2 px-0.5">
         <h3 className="font-medium text-sm leading-tight line-clamp-1 group-hover:text-primary transition-colors">{movie.title}</h3>
-        <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
-          {movie.year && <span>{movie.year}</span>}
-          {movie.runtime && <><span className="text-border">·</span><span>{movie.runtime}</span></>}
+        <div className="flex items-center justify-between gap-1.5 mt-0.5 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            {KindIcon && <KindIcon className="h-3 w-3" />}
+            {movie.year && <span>{movie.year}</span>}
+          </span>
           {movie.rating && (
-            <><span className="text-border">·</span>
             <span className="flex items-center gap-0.5">
               <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
               {movie.rating.toFixed(1)}
               {movie.votes != null && (
                 <span className="text-muted-foreground/70 ml-0.5">({compactFmt.format(movie.votes)})</span>
               )}
-            </span></>
+            </span>
           )}
         </div>
-        {movie.genres.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1.5">
-            {movie.genres.slice(0, 2).map((genre) => (
-              <Badge key={genre} variant="secondary" className="text-[10px] px-1.5 py-0 font-normal">{genre}</Badge>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   )
