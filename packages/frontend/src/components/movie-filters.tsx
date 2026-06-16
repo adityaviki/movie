@@ -145,7 +145,6 @@ export function ActiveFilters() {
   const minVotes = searchParams.get('minVotes') ?? ''
   const maxVotes = searchParams.get('maxVotes') ?? ''
   const watchlist = searchParams.get('watchlist') ?? ''
-  const watched = searchParams.get('watched') ?? ''
 
   const { data: peopleInfo = [] } = useQuery({
     queryKey: ['people-lookup', selectedPeople.join(',')],
@@ -207,14 +206,6 @@ export function ActiveFilters() {
       onRemove: () => update({ watchlist: null }),
     })
   }
-  if (watched === 'all') {
-    chips.push({
-      key: 'watched',
-      label: 'Watched: All',
-      onRemove: () => update({ watched: null }),
-    })
-  }
-
   if (chips.length === 0) return null
 
   const clearAll = () => {
@@ -263,6 +254,7 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
 export function LibraryToggles() {
   const { searchParams, update } = useFilterUpdate()
   const watchlistOn = searchParams.get('watchlist') === 'true'
+  // Watched movies are hidden by default; this toggle reveals only watched movies.
   const watchedOn = searchParams.get('watched') === 'true'
   return (
     <>
@@ -278,7 +270,7 @@ export function LibraryToggles() {
         onClick={() => update({ watched: watchedOn ? null : 'true' })}
         icon={<Eye className="h-3.5 w-3.5" />}
         label="Watched"
-        title={watchedOn ? 'Showing only watched · click to clear' : 'Show only watched'}
+        title={watchedOn ? 'Showing watched movies · click to hide them' : 'Watched movies hidden · click to show them'}
       />
     </>
   )

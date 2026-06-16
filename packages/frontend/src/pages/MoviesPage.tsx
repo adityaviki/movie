@@ -42,12 +42,8 @@ export function MoviesPage() {
     people: peopleList.length ? peopleList : undefined,
     peopleRole,
     inWatchlist: searchParams.get('watchlist') === 'true' ? true : searchParams.get('watchlist') === 'false' ? false : undefined,
-    watched: (() => {
-      const v = searchParams.get('watched')
-      if (v === 'true') return true
-      if (v === 'false') return false
-      return undefined
-    })(),
+    // Watched movies are hidden by default; the Watched toggle (watched=true) shows them.
+    watched: searchParams.get('watched') === 'true' ? true : false,
     page,
     pageSize,
   }
