@@ -256,18 +256,19 @@ export function LibraryToggles() {
   const watchlistOn = searchParams.get('watchlist') === 'true'
   // Watched movies are hidden by default; this toggle reveals only watched movies.
   const watchedOn = searchParams.get('watched') === 'true'
+  // Watchlist and Watched are mutually exclusive — turning one on clears the other.
   return (
     <>
       <ToggleButton
         active={watchlistOn}
-        onClick={() => update({ watchlist: watchlistOn ? null : 'true' })}
+        onClick={() => update({ watchlist: watchlistOn ? null : 'true', watched: null })}
         icon={<Bookmark className="h-3.5 w-3.5" />}
         label="Watchlist"
         title={watchlistOn ? 'Showing only watchlist · click to clear' : 'Show only watchlist'}
       />
       <ToggleButton
         active={watchedOn}
-        onClick={() => update({ watched: watchedOn ? null : 'true' })}
+        onClick={() => update({ watched: watchedOn ? null : 'true', watchlist: null })}
         icon={<Eye className="h-3.5 w-3.5" />}
         label="Watched"
         title={watchedOn ? 'Showing watched movies · click to hide them' : 'Watched movies hidden · click to show them'}
