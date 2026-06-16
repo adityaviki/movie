@@ -777,7 +777,7 @@ export function MobileFiltersSheet({ genres }: { genres: string[] }) {
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-full max-w-none sm:w-[85vw] sm:max-w-sm p-0">
+      <SheetContent side="bottom" className="h-[50vh] rounded-t-2xl overflow-hidden p-0">
         <SheetHeader>
           <SheetTitle>Filters</SheetTitle>
         </SheetHeader>
