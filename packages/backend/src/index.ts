@@ -32,7 +32,7 @@ await app.register(jwt, {
 })
 await app.register(rateLimit, { global: false })
 await app.register(cors, {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL || 'http://localhost:7071',
   credentials: true,
 })
 
@@ -48,5 +48,5 @@ await app.register(authRoutes, { prefix: '/api' })
 await app.register(movieRoutes, { prefix: '/api' })
 await app.register(peopleRoutes, { prefix: '/api' })
 
-const port = Number(process.env.PORT) || 3001
+const port = Number(process.env.PORT) || 7070
 await app.listen({ port, host: '0.0.0.0' })

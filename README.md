@@ -74,8 +74,8 @@ DATABASE_URL=postgres://user:pass@127.0.0.1:5432/movie
 JWT_SECRET=run: openssl rand -hex 32
 COOKIE_SECRET=run: openssl rand -hex 32
 # Optional — defaults shown:
-PORT=3001
-FRONTEND_URL=http://localhost:5173
+PORT=7070
+FRONTEND_URL=http://localhost:7071
 
 # Optional — only needed for the data sync:
 OMDB_API_KEY=your_key
@@ -88,8 +88,8 @@ IMDB_CACHE_DIR=./.imdb-cache
 | `DATABASE_URL` | Postgres connection string | — (required) |
 | `JWT_SECRET` | Signs the auth JWT | — (required) |
 | `COOKIE_SECRET` | Signs the auth cookie | — (required) |
-| `PORT` | Backend listen port | `3001` |
-| `FRONTEND_URL` | CORS origin for the SPA | `http://localhost:5173` |
+| `PORT` | Backend listen port | `7070` |
+| `FRONTEND_URL` | CORS origin for the SPA | `http://localhost:7071` |
 | `OMDB_API_KEY` | Enables OMDb enrichment during sync | unset (sync skips enrichment) |
 | `OMDB_MAX_CALLS_PER_RUN` | Caps OMDb calls per sync run | — |
 | `IMDB_CACHE_DIR` | Where IMDb dumps are cached | — |
@@ -127,8 +127,8 @@ the artwork.
 pnpm dev
 ```
 
-This starts both packages in parallel: the API on `http://localhost:3001` and the
-Vite dev server on `http://localhost:5173` (which proxies `/api` to the backend).
+This starts both packages in parallel: the API on `http://localhost:7070` and the
+Vite dev server on `http://localhost:7071` (which proxies `/api` to the backend).
 
 ## Available scripts
 
