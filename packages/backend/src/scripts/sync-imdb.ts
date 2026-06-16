@@ -16,9 +16,9 @@ import {
 import { fetchOmdbTitle, OmdbQuotaError, sleep } from '../lib/omdb.js'
 
 const MIN_RATING = 7.0
-const MIN_VOTES = 10_000
+const MIN_VOTES = 30_000
 const ALLOWED_TITLE_TYPES = new Set(['movie', 'tvSeries', 'tvMiniSeries', 'tvMovie', 'tvSpecial', 'video'])
-const MIN_AGE_DAYS = 90
+const MIN_AGE_DAYS = 30
 const OMDB_REQUEST_INTERVAL_MS = 1100
 const CREDIT_BATCH_SIZE = 500
 const PERSON_BATCH_SIZE = 500

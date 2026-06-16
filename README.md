@@ -116,7 +116,7 @@ pnpm --filter @movie/backend sync:imdb            # titles + ratings
 pnpm --filter @movie/backend sync:imdb:backfill   # also pull cast/crew (downloads ~2GB)
 ```
 
-The sync keeps titles above ~7.0 rating with 10k+ votes across a fixed set of
+The sync keeps titles above ~7.0 rating with 30k+ votes across a fixed set of
 title types, then backfills posters and descriptions from OMDb up to the per-run
 cap. Without an `OMDB_API_KEY` it still imports titles and ratings, just without
 the artwork.
