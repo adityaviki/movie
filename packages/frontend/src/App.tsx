@@ -12,14 +12,12 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border/50 bg-card/60 backdrop-blur-md sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-4">
-          <Link to="/movies" className="shrink-0 text-base sm:text-lg font-bold tracking-tight">Movies</Link>
-          {showSearch && (
-            <div className="flex-1 min-w-0 max-w-md">
-              <MovieSearchBox />
-            </div>
-          )}
-          <div className="ml-auto shrink-0 flex items-center gap-1">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3 grid grid-cols-[1fr_minmax(0,28rem)_1fr] items-center gap-2 sm:gap-4">
+          <Link to="/movies" className="justify-self-start shrink-0 text-base sm:text-lg font-bold tracking-tight">Movies</Link>
+          <div className="w-full min-w-0">
+            {showSearch && <MovieSearchBox />}
+          </div>
+          <div className="justify-self-end shrink-0 flex items-center gap-1">
             <UserMenu />
             <ThemeToggle />
           </div>
