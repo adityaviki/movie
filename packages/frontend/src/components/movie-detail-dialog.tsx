@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { Star, ExternalLink, X } from 'lucide-react'
 import type { MovieCreditPerson, MovieDetail } from '@movie/shared'
 import { moviesApi } from '@/api/movies'
@@ -26,7 +27,15 @@ function prettyType(type: string) {
   return TYPE_LABELS[type] ?? type
 }
 
-function CreditSection({ label, people }: { label: string; people: MovieCreditPerson[] }) {
+function CreditSection({
+  label,
+  people,
+  onPersonClick,
+}: {
+  label: string
+  people: MovieCreditPerson[]
+  onPersonClick: (id: string) => void
+}) {
   if (people.length === 0) return null
   return (
     <div className="space-y-1">
@@ -34,7 +43,14 @@ function CreditSection({ label, people }: { label: string; people: MovieCreditPe
       <p className="text-sm leading-relaxed">
         {people.map((p, i) => (
           <span key={`${p.id}-${p.ordering}`}>
-            {p.name}
+            <button
+              type="button"
+              onClick={() => onPersonClick(p.id)}
+              className="rounded-sm underline-offset-2 transition-colors hover:text-primary hover:underline focus-visible:outline-none focus-visible:underline focus-visible:text-primary"
+              title={`Show all movies with ${p.name}`}
+            >
+              {p.name}
+            </button>
             {p.characters && p.characters.length > 0 && (
               <span className="text-muted-foreground"> as {p.characters.join(', ')}</span>
             )}
@@ -50,14 +66,14 @@ function hasCredits(movie: MovieDetail) {
   return movie.directors.length > 0 || movie.writers.length > 0 || movie.cast.length > 0 || movie.producers.length > 0
 }
 
-function Credits({ movie }: { movie: MovieDetail }) {
+function Credits({ movie, onPersonClick }: { movie: MovieDetail; onPersonClick: (id: string) => void }) {
   if (!hasCredits(movie)) return null
   return (
     <div className="space-y-3 text-left">
-      <CreditSection label="Directors" people={movie.directors} />
-      <CreditSection label="Writers" people={movie.writers} />
-      <CreditSection label="Cast" people={movie.cast.slice(0, MAX_CAST)} />
-      <CreditSection label="Producers" people={movie.producers.slice(0, MAX_PRODUCERS)} />
+      <CreditSection label="Directors" people={movie.directors} onPersonClick={onPersonClick} />
+      <CreditSection label="Writers" people={movie.writers} onPersonClick={onPersonClick} />
+      <CreditSection label="Cast" people={movie.cast.slice(0, MAX_CAST)} onPersonClick={onPersonClick} />
+      <CreditSection label="Producers" people={movie.producers.slice(0, MAX_PRODUCERS)} onPersonClick={onPersonClick} />
     </div>
   )
 }
@@ -120,11 +136,28 @@ export function MovieDetailDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const [, setSearchParams] = useSearchParams()
+
   const { data: movie, isLoading } = useQuery({
     queryKey: ['movies', movieId],
     queryFn: () => moviesApi.get(movieId!),
     enabled: !!movieId && open,
   })
+
+  // Clicking a credited person filters the grid down to their filmography.
+  // We reset to a clean filter state (preserving only the sort) and close the
+  // dialog by dropping the `movie` param.
+  const showPersonMovies = (personId: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams()
+      const sortBy = prev.get('sortBy')
+      const sortOrder = prev.get('sortOrder')
+      if (sortBy) next.set('sortBy', sortBy)
+      if (sortOrder) next.set('sortOrder', sortOrder)
+      next.set('people', personId)
+      return next
+    })
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -172,7 +205,7 @@ export function MovieDetailDialog({
               {movie.description && (
                 <p className="text-sm text-muted-foreground leading-relaxed">{movie.description}</p>
               )}
-              <Credits movie={movie} />
+              <Credits movie={movie} onPersonClick={showPersonMovies} />
               <div className="flex flex-col gap-2">
                 <Actions movie={movie} />
               </div>
