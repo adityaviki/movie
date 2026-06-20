@@ -17,7 +17,7 @@ export function WatchlistToggle({ movieId, inWatchlist, label = false }: { movie
       <button
         disabled={isPending}
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); mutate() }}
-        className="flex w-full items-center gap-2.5 h-9 px-3 rounded-md bg-muted/70 hover:bg-muted text-sm font-medium transition-colors disabled:opacity-50"
+        className="flex w-full items-center gap-2.5 sm:justify-center h-9 px-3 rounded-md bg-muted/70 hover:bg-muted text-sm font-medium transition-colors disabled:opacity-50"
       >
         <Bookmark className={cn('h-4 w-4', inWatchlist && 'fill-yellow-400 text-yellow-400')} />
         {inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}

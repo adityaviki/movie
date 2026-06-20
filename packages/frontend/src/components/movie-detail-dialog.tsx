@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { Star, ExternalLink, X } from 'lucide-react'
@@ -90,7 +91,7 @@ function Actions({ movie }: { movie: MovieDetail }) {
           rel="noopener noreferrer"
           className="w-full"
         >
-          <Button variant="outline" className="w-full justify-start gap-2.5">
+          <Button variant="outline" className="w-full justify-start gap-2.5 sm:justify-center">
             <ExternalLink className="h-4 w-4" />IMDB
           </Button>
         </a>
@@ -137,6 +138,11 @@ export function MovieDetailDialog({
   onOpenChange: (open: boolean) => void
 }) {
   const [, setSearchParams] = useSearchParams()
+  // Full-size poster lightbox, opened by clicking the poster.
+  const [posterOpen, setPosterOpen] = useState(false)
+  useEffect(() => {
+    if (!open) setPosterOpen(false)
+  }, [open])
 
   const { data: movie, isLoading } = useQuery({
     queryKey: ['movies', movieId],
@@ -160,6 +166,7 @@ export function MovieDetailDialog({
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
@@ -189,7 +196,28 @@ export function MovieDetailDialog({
             {/* Full-bleed poster hero with the headline overlaid on a gradient scrim */}
             <div className="relative w-full aspect-[2/3] max-h-[68vh] sm:max-h-[56vh] overflow-hidden bg-muted">
               {movie.posterUrl ? (
-                <img src={movie.posterUrl} alt={movie.title} className="absolute inset-0 w-full h-full object-cover object-top" />
+                <>
+                  {/* Slightly blurred, cropped fill so the frame is never empty beside the full poster */}
+                  <img
+                    src={movie.posterUrl}
+                    alt=""
+                    aria-hidden
+                    className="absolute inset-0 w-full h-full object-cover object-top scale-110 blur-md"
+                  />
+                  {/* The full, uncropped poster — click to view full size */}
+                  <button
+                    type="button"
+                    onClick={() => setPosterOpen(true)}
+                    aria-label="View full poster"
+                    className="absolute inset-0 w-full h-full cursor-zoom-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  >
+                    <img
+                      src={movie.posterUrl}
+                      alt={movie.title}
+                      className="w-full h-full object-contain object-top"
+                    />
+                  </button>
+                </>
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">No Poster</div>
               )}
@@ -206,7 +234,8 @@ export function MovieDetailDialog({
                 <p className="text-sm text-muted-foreground leading-relaxed">{movie.description}</p>
               )}
               <Credits movie={movie} onPersonClick={showPersonMovies} />
-              <div className="flex flex-col gap-2">
+              {/* Stacked on mobile; horizontal, equal-width on tablet/desktop */}
+              <div className="flex flex-col gap-2 sm:flex-row sm:[&>*]:flex-1">
                 <Actions movie={movie} />
               </div>
             </div>
@@ -214,5 +243,32 @@ export function MovieDetailDialog({
         )}
       </DialogContent>
     </Dialog>
+
+    {/* Full-size poster lightbox — nested dialog so Escape closes it first */}
+    {movie?.posterUrl && (
+      <Dialog open={posterOpen} onOpenChange={setPosterOpen}>
+        <DialogContent
+          showCloseButton={false}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          className="block top-0 left-0 translate-x-0 translate-y-0 max-w-none sm:max-w-none w-screen h-[100dvh] max-h-[100dvh] rounded-none border-0 bg-black/90 p-0 shadow-none"
+        >
+          <DialogTitle className="sr-only">{movie.title} poster</DialogTitle>
+          <DialogDescription className="sr-only">Full size poster for {movie.title}</DialogDescription>
+          <DialogClose className="absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/20 backdrop-blur-sm transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </DialogClose>
+          <button
+            type="button"
+            onClick={() => setPosterOpen(false)}
+            aria-label="Close full poster"
+            className="absolute inset-0 flex items-center justify-center p-4 sm:p-8 cursor-zoom-out"
+          >
+            <img src={movie.posterUrl} alt={movie.title} className="max-w-full max-h-full object-contain" />
+          </button>
+        </DialogContent>
+      </Dialog>
+    )}
+    </>
   )
 }
