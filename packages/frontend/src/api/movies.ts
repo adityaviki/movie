@@ -18,6 +18,7 @@ function buildQuery(filters: MovieFilters): string {
   if (filters.peopleRole) params.set('peopleRole', filters.peopleRole)
   if (filters.sortBy) params.set('sortBy', filters.sortBy)
   if (filters.sortOrder) params.set('sortOrder', filters.sortOrder)
+  if (filters.seed) params.set('seed', filters.seed)
   if (filters.page) params.set('page', String(filters.page))
   if (filters.pageSize) params.set('pageSize', String(filters.pageSize))
   return params.toString()

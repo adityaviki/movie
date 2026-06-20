@@ -86,6 +86,7 @@ export async function movieRoutes(app: FastifyInstance) {
       peopleRole: peopleList.length ? peopleRole : undefined,
       sortBy: (q.sortBy as MovieFilters['sortBy']) || 'year',
       sortOrder: (q.sortOrder as MovieFilters['sortOrder']) || 'desc',
+      seed: q.seed || undefined,
       page: q.page ? Number(q.page) : 1,
       pageSize: q.pageSize ? Number(q.pageSize) : 20,
     }
@@ -119,14 +120,21 @@ export async function movieRoutes(app: FastifyInstance) {
     }
 
     const where = conditions.length ? and(...conditions) : undefined
-    const sortCol = {
-      title: movies.title,
-      rating: movies.rating,
-      votes: movies.votes,
-      year: movies.year,
-      createdAt: movies.createdAt,
-    }[filters.sortBy!]!
-    const order = filters.sortOrder === 'asc' ? asc(sortCol) : desc(sortCol)
+    // Shuffle: order by a hash of (id, seed) so the random order is deterministic
+    // for a given seed — stable across pages and refetches, with id as tiebreak.
+    const order =
+      filters.sortBy === 'random'
+        ? [asc(sql`md5(${movies.id} || ${filters.seed ?? ''})`), asc(movies.id)]
+        : (() => {
+            const sortCol = {
+              title: movies.title,
+              rating: movies.rating,
+              votes: movies.votes,
+              year: movies.year,
+              createdAt: movies.createdAt,
+            }[filters.sortBy as Exclude<NonNullable<MovieFilters['sortBy']>, 'random'>]!
+            return [filters.sortOrder === 'asc' ? asc(sortCol) : desc(sortCol)]
+          })()
     const skip = ((filters.page ?? 1) - 1) * (filters.pageSize ?? 20)
 
     const joinCondition = and(eq(userMovies.movieId, movies.id), eq(userMovies.userId, userId))
@@ -137,7 +145,7 @@ export async function movieRoutes(app: FastifyInstance) {
         .from(movies)
         .leftJoin(userMovies, joinCondition)
         .where(where)
-        .orderBy(order)
+        .orderBy(...order)
         .limit(filters.pageSize!)
         .offset(skip),
       db

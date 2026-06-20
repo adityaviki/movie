@@ -48,8 +48,10 @@ export interface MovieFilters {
   watched?: boolean
   people?: string[]
   peopleRole?: PeopleRole
-  sortBy?: 'title' | 'rating' | 'votes' | 'year' | 'createdAt'
+  sortBy?: 'title' | 'rating' | 'votes' | 'year' | 'createdAt' | 'random'
   sortOrder?: 'asc' | 'desc'
+  // Seed for stable random ordering when sortBy === 'random'.
+  seed?: string
   page?: number
   pageSize?: number
 }

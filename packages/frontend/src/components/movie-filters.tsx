@@ -1,7 +1,7 @@
 import { useSearchParams } from 'react-router-dom'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowDownNarrowWide, ArrowUpNarrowWide, Bookmark, Eye, Search, SlidersHorizontal, Users, X } from 'lucide-react'
+import { ArrowDownNarrowWide, ArrowUpNarrowWide, Bookmark, Eye, Search, Shuffle, SlidersHorizontal, Users, X } from 'lucide-react'
 import type { PeopleRole, PersonSearchResult } from '@movie/shared'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -64,9 +64,18 @@ export function MovieSortControl({ className }: { className?: string }) {
   const { searchParams, update } = useFilterUpdate()
   const sortBy = searchParams.get('sortBy') ?? 'year'
   const sortOrder = searchParams.get('sortOrder') ?? 'desc'
+  // Direction is meaningless while shuffling — the Shuffle option drives ordering.
+  const shuffling = sortBy === 'random'
   return (
     <div className={cn('flex items-center', className)}>
-      <Select value={sortBy} onValueChange={(v) => update({ sortBy: v })}>
+      <Select
+        value={sortBy}
+        onValueChange={(v) =>
+          v === 'random'
+            ? update({ sortBy: 'random', seed: newSeed(), sortOrder: null })
+            : update({ sortBy: v, seed: null })
+        }
+      >
         <SelectTrigger size="sm" className="data-[size=sm]:h-10 sm:data-[size=sm]:h-8 w-[120px] sm:w-[140px] rounded-r-none border-r-0">
           <SelectValue placeholder="Sort" />
         </SelectTrigger>
@@ -76,11 +85,13 @@ export function MovieSortControl({ className }: { className?: string }) {
           <SelectItem value="rating">Rating</SelectItem>
           <SelectItem value="votes">Popularity</SelectItem>
           <SelectItem value="year">Year</SelectItem>
+          <SelectItem value="random">Shuffle</SelectItem>
         </SelectContent>
       </Select>
       <Button
         variant="outline"
         size="sm"
+        disabled={shuffling}
         className="h-10 sm:h-8 rounded-l-none px-2"
         aria-label={sortOrder === 'asc' ? 'Sort ascending' : 'Sort descending'}
         onClick={() => update({ sortOrder: sortOrder === 'asc' ? 'desc' : 'asc' })}
@@ -92,6 +103,30 @@ export function MovieSortControl({ className }: { className?: string }) {
         )}
       </Button>
     </div>
+  )
+}
+
+function newSeed() {
+  return Math.random().toString(36).slice(2, 10)
+}
+
+// Re-rolls the random order. Only shown while the Shuffle sort is active; sits to
+// the left of the sort control.
+export function MovieReshuffleButton() {
+  const { searchParams, update } = useFilterUpdate()
+  const active = searchParams.get('sortBy') === 'random'
+  if (!active) return null
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="h-10 sm:h-8 px-2.5 text-primary"
+      title="Reshuffle"
+      aria-label="Reshuffle"
+      onClick={() => update({ seed: newSeed() })}
+    >
+      <Shuffle className="h-4 w-4" />
+    </Button>
   )
 }
 
@@ -212,8 +247,11 @@ export function ActiveFilters() {
     const next = new URLSearchParams()
     const sortBy = searchParams.get('sortBy')
     const sortOrder = searchParams.get('sortOrder')
+    const seed = searchParams.get('seed')
     if (sortBy) next.set('sortBy', sortBy)
     if (sortOrder) next.set('sortOrder', sortOrder)
+    // Keep an active shuffle intact when clearing content filters.
+    if (seed) next.set('seed', seed)
     setSearchParams(next)
   }
 

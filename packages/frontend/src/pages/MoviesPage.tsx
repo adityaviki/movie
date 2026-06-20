@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { moviesApi } from '@/api/movies'
 import { MovieGrid } from '@/components/movie-grid'
 import { MovieDetailDialog } from '@/components/movie-detail-dialog'
-import { ActiveFilters, LibraryToggles, MobileFiltersSheet, MovieFiltersSidebar, MovieSortControl } from '@/components/movie-filters'
+import { ActiveFilters, LibraryToggles, MobileFiltersSheet, MovieFiltersSidebar, MovieReshuffleButton, MovieSortControl } from '@/components/movie-filters'
 import { Pagination } from '@/components/pagination'
 import type { MovieFilters as Filters, PeopleRole } from '@movie/shared'
 
@@ -39,6 +39,7 @@ export function MoviesPage() {
     maxVotes: numParam('maxVotes'),
     sortBy: (searchParams.get('sortBy') as Filters['sortBy']) || 'year',
     sortOrder: (searchParams.get('sortOrder') as Filters['sortOrder']) || 'desc',
+    seed: searchParams.get('seed') || undefined,
     people: peopleList.length ? peopleList : undefined,
     peopleRole,
     inWatchlist: searchParams.get('watchlist') === 'true' ? true : searchParams.get('watchlist') === 'false' ? false : undefined,
@@ -85,7 +86,10 @@ export function MoviesPage() {
           <div className="hidden lg:flex items-center gap-2">
             <LibraryToggles />
           </div>
-          <MovieSortControl className="ml-auto" />
+          <div className="ml-auto flex items-center gap-2">
+            <MovieReshuffleButton />
+            <MovieSortControl />
+          </div>
         </div>
 
         <div className="flex items-center justify-between gap-3 flex-wrap">
