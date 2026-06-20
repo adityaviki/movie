@@ -1,5 +1,6 @@
+import { useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { moviesApi } from '@/api/movies'
 import { MovieGrid } from '@/components/movie-grid'
 import { MovieDetailDialog } from '@/components/movie-detail-dialog'
@@ -8,6 +9,16 @@ import { Pagination } from '@/components/pagination'
 import type { MovieFilters as Filters, PeopleRole } from '@movie/shared'
 
 const VALID_PEOPLE_ROLES: PeopleRole[] = ['any', 'director', 'writer', 'producer', 'cast']
+
+// Shared so the live list query and on-demand adjacent-page fetches use an
+// identical query key (only `page` differs).
+function moviesQueryOptions(filters: Filters) {
+  return {
+    queryKey: ['movies', filters] as const,
+    queryFn: () => moviesApi.list(filters),
+    staleTime: 30_000,
+  }
+}
 
 export function MoviesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -49,10 +60,7 @@ export function MoviesPage() {
     pageSize,
   }
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['movies', filters],
-    queryFn: () => moviesApi.list(filters),
-  })
+  const { data, isLoading } = useQuery(moviesQueryOptions(filters))
 
   const { data: genres = [] } = useQuery({
     queryKey: ['genres'],
@@ -74,20 +82,51 @@ export function MoviesPage() {
     })
   }
 
-  // Prev/next navigation within the current page of results.
+  // Prev/next navigation across the whole result set. Stepping past the edge of
+  // the current page pulls in the neighbouring page on demand.
+  const queryClient = useQueryClient()
+  const navigating = useRef(false)
   const movieList = data?.movies ?? []
   const openIndex = openMovieId ? movieList.findIndex((m) => m.id === openMovieId) : -1
-  const goToMovie = (id: string) =>
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev)
-      next.set('movie', id)
-      return next
-    })
-  const onPrev = openIndex > 0 ? () => goToMovie(movieList[openIndex - 1].id) : undefined
-  const onNext =
-    openIndex >= 0 && openIndex < movieList.length - 1
-      ? () => goToMovie(movieList[openIndex + 1].id)
-      : undefined
+  const totalPages = Math.ceil(total / pageSize)
+  const globalIndex = openIndex >= 0 ? (page - 1) * pageSize + openIndex : -1
+
+  const step = async (dir: -1 | 1) => {
+    if (openIndex < 0 || navigating.current) return
+    const target = openIndex + dir
+    if (target >= 0 && target < movieList.length) {
+      // Still on this page — just swap the movie param.
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('movie', movieList[target].id)
+        return next
+      })
+      return
+    }
+    // Ran off the page edge — fetch the neighbouring page and open its end movie.
+    const targetPage = page + dir
+    if (targetPage < 1 || targetPage > totalPages) return
+    navigating.current = true
+    try {
+      const res = await queryClient.fetchQuery(moviesQueryOptions({ ...filters, page: targetPage }))
+      const m = dir === 1 ? res.movies[0] : res.movies[res.movies.length - 1]
+      if (m) {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev)
+          next.set('page', String(targetPage))
+          next.set('movie', m.id)
+          return next
+        })
+      }
+    } catch {
+      // ignore fetch failures — leave the dialog where it is
+    } finally {
+      navigating.current = false
+    }
+  }
+
+  const onPrev = globalIndex > 0 ? () => step(-1) : undefined
+  const onNext = globalIndex >= 0 && globalIndex < total - 1 ? () => step(1) : undefined
 
   return (
     <div className="flex flex-col gap-4 lg:flex-row lg:gap-6 lg:items-start">
