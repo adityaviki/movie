@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import { Star, ExternalLink, X } from 'lucide-react'
+import { Star, ExternalLink, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { MovieCreditPerson, MovieDetail } from '@movie/shared'
 import { moviesApi } from '@/api/movies'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogClose, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Dialog, DialogClose, DialogContent, DialogPortal, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { WatchlistToggle } from '@/components/watchlist-toggle'
 import { WatchedToggle } from '@/components/watched-toggle'
 
@@ -132,10 +132,14 @@ export function MovieDetailDialog({
   movieId,
   open,
   onOpenChange,
+  onPrev,
+  onNext,
 }: {
   movieId: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  onPrev?: () => void
+  onNext?: () => void
 }) {
   const [, setSearchParams] = useSearchParams()
   // Full-size poster lightbox, opened by clicking the poster.
@@ -143,6 +147,38 @@ export function MovieDetailDialog({
   useEffect(() => {
     if (!open) setPosterOpen(false)
   }, [open])
+
+  // Reset scroll to the top whenever we switch to a different movie.
+  const topRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    topRef.current?.scrollIntoView()
+  }, [movieId])
+
+  // Arrow keys move to the previous/next movie (disabled while the lightbox is open).
+  useEffect(() => {
+    if (!open || posterOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') onPrev?.()
+      else if (e.key === 'ArrowRight') onNext?.()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, posterOpen, onPrev, onNext])
+
+  // Swipe (touch) navigation — used on mobile where the arrow buttons are hidden.
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
+  const handleSwipeEnd = (x: number, y: number) => {
+    const start = touchStart.current
+    touchStart.current = null
+    if (!start || posterOpen) return
+    const dx = x - start.x
+    const dy = y - start.y
+    // Only count clearly horizontal swipes so vertical scrolling still works.
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0) onNext?.()
+      else onPrev?.()
+    }
+  }
 
   const { data: movie, isLoading } = useQuery({
     queryKey: ['movies', movieId],
@@ -171,8 +207,19 @@ export function MovieDetailDialog({
       <DialogContent
         showCloseButton={false}
         onOpenAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => {
+          // Clicking/focusing the external nav arrows shouldn't close the dialog.
+          const target = e.detail.originalEvent.target as HTMLElement | null
+          if (target?.closest('[data-movie-nav]')) e.preventDefault()
+        }}
+        onTouchStart={(e) => {
+          touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+        }}
+        onTouchEnd={(e) => handleSwipeEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY)}
         className="block top-0 left-0 translate-x-0 translate-y-0 max-w-none w-screen h-[100dvh] max-h-[100dvh] rounded-none border-0 sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-2xl sm:w-full sm:h-auto sm:max-h-[92vh] sm:rounded-2xl sm:border md:max-w-3xl overflow-y-auto scrollbar-minimal p-0"
       >
+        {/* In-flow anchor at the very top; scrolled into view when switching movies */}
+        <div ref={topRef} aria-hidden className="h-0" />
         {/* Sticky close button — stays pinned to the top-right while the dialog scrolls */}
         <div className="sticky top-0 z-50 h-0">
           <DialogClose className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-background/70 text-foreground ring-1 ring-border/50 backdrop-blur-sm opacity-90 transition hover:bg-background hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none">
@@ -242,6 +289,36 @@ export function MovieDetailDialog({
           </>
         )}
       </DialogContent>
+      {/* Prev/next arrows live outside the dialog window, centered on the screen.
+          Hidden on mobile (swipe instead) and while the poster lightbox is open. */}
+      {!posterOpen && (onPrev || onNext) && (
+        <DialogPortal>
+          <div className="hidden sm:block pointer-events-auto">
+            {onPrev && (
+              <button
+                type="button"
+                data-movie-nav
+                onClick={onPrev}
+                aria-label="Previous movie"
+                className="fixed left-3 md:left-6 top-1/2 -translate-y-1/2 z-[60] inline-flex h-12 w-12 items-center justify-center rounded-full bg-background/80 text-foreground ring-1 ring-border/60 shadow-lg backdrop-blur transition hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+            )}
+            {onNext && (
+              <button
+                type="button"
+                data-movie-nav
+                onClick={onNext}
+                aria-label="Next movie"
+                className="fixed right-3 md:right-6 top-1/2 -translate-y-1/2 z-[60] inline-flex h-12 w-12 items-center justify-center rounded-full bg-background/80 text-foreground ring-1 ring-border/60 shadow-lg backdrop-blur transition hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            )}
+          </div>
+        </DialogPortal>
+      )}
     </Dialog>
 
     {/* Full-size poster lightbox — nested dialog so Escape closes it first */}

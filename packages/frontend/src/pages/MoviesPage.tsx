@@ -74,6 +74,21 @@ export function MoviesPage() {
     })
   }
 
+  // Prev/next navigation within the current page of results.
+  const movieList = data?.movies ?? []
+  const openIndex = openMovieId ? movieList.findIndex((m) => m.id === openMovieId) : -1
+  const goToMovie = (id: string) =>
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set('movie', id)
+      return next
+    })
+  const onPrev = openIndex > 0 ? () => goToMovie(movieList[openIndex - 1].id) : undefined
+  const onNext =
+    openIndex >= 0 && openIndex < movieList.length - 1
+      ? () => goToMovie(movieList[openIndex + 1].id)
+      : undefined
+
   return (
     <div className="flex flex-col gap-4 lg:flex-row lg:gap-6 lg:items-start">
       <aside className="hidden lg:block lg:sticky lg:top-20 lg:w-72 lg:shrink-0 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto scrollbar-minimal rounded-xl bg-card/60 backdrop-blur-md border border-border/50 px-4 py-4">
@@ -122,6 +137,8 @@ export function MoviesPage() {
         movieId={openMovieId}
         open={!!openMovieId}
         onOpenChange={closeDialog}
+        onPrev={onPrev}
+        onNext={onNext}
       />
     </div>
   )
