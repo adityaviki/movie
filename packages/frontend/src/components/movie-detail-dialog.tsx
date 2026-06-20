@@ -206,6 +206,7 @@ export function MovieDetailDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
+        overlayClassName="bg-black/80"
         onOpenAutoFocus={(e) => e.preventDefault()}
         onInteractOutside={(e) => {
           // Clicking/focusing the external nav arrows shouldn't close the dialog.
